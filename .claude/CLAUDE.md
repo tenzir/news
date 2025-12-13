@@ -2,6 +2,16 @@
 
 This repository aggregates changelog entries from multiple Tenzir repositories.
 
+## Important: No Local Changelog
+
+This repository does **not** have its own changelog. Do not create changelog
+entries here when committing changes.
+
+The top-level directories are synced changelog projects from other repositories.
+In particular, `changelog/` is **not** this project's changelog—it contains
+entries synced from the `tenzir/changelog` repository (the changelog tool
+itself). Other directories like `tenzir/` and `docs/` follow the same pattern.
+
 ## Repository Structure
 
 Each top-level directory is a [tenzir/changelog](https://github.com/tenzir/changelog)
