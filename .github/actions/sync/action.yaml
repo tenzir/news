@@ -1,0 +1,37 @@
+name: Sync Changelog
+description: Trigger changelog sync to tenzir/news
+
+inputs:
+  project:
+    description: Project name
+    required: false
+    default: ${{ github.event.repository.name }}
+  path:
+    description: Path to changelog in source repo
+    required: false
+    default: changelog
+  token:
+    description: GitHub token with workflow trigger permissions
+    required: true
+  target:
+    description: Target repository to sync to
+    required: false
+    default: tenzir/news
+  ref:
+    description: Branch to trigger the workflow on
+    required: false
+    default: main
+
+runs:
+  using: composite
+  steps:
+    - name: Trigger sync workflow
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        gh workflow run sync.yaml \
+          --repo "${{ inputs.target }}" \
+          --ref "${{ inputs.ref }}" \
+          --field project="${{ inputs.project }}" \
+          --field path="${{ inputs.path }}"

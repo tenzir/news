@@ -1,15 +1,16 @@
-name: Update
+name: Sync
 
 on:
   workflow_dispatch:
     inputs:
       project:
-        description: "Project to update"
+        description: "Project to sync"
         required: true
         type: choice
         options:
           - tenzir
           - docs
+          - test
       path:
         description: "Path to changelog directory in source repo"
         required: false
@@ -20,7 +21,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: "update"
+  group: "sync"
   cancel-in-progress: false
 
 jobs:
@@ -30,14 +31,14 @@ jobs:
     steps:
       - name: Validate project parameter
         run: |
-          if [[ "${{ inputs.project }}" != "tenzir" && "${{ inputs.project }}" != "docs" ]]; then
-            echo "Error: project must be either 'tenzir' or 'docs'"
+          if [[ "${{ inputs.project }}" != "tenzir" && "${{ inputs.project }}" != "docs" && "${{ inputs.project }}" != "test" ]]; then
+            echo "Error: project must be 'tenzir', 'docs', or 'test'"
             exit 1
           fi
           echo "Valid project: ${{ inputs.project }}"
 
-  update:
-    name: Update Changelog
+  sync:
+    name: Sync Changelog
     needs: validate
     runs-on: ubuntu-latest
     steps:
@@ -83,7 +84,7 @@ jobs:
             echo "No changes needed for ${{ inputs.project }} changelog"
           else
             git add .
-            git commit -m "Update ${{ inputs.project }} changelog"
+            git commit -m "Sync ${{ inputs.project }} changelog"
             git push
-            echo "Updated and committed ${{ inputs.project }} changelog"
+            echo "Synced ${{ inputs.project }} changelog"
           fi
