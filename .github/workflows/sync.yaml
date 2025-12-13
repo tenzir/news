@@ -35,10 +35,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Clone source repository
+        id: clone
         run: |
           git clone --depth 1 \
             https://github.com/tenzir/${{ inputs.project }}.git \
             /tmp/source
+          echo "sha=$(git -C /tmp/source rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Sync changelog
         run: |
@@ -55,7 +57,7 @@ jobs:
       - name: Commit changes
         uses: planetscale/ghcommit-action@v0.2.0
         with:
-          commit_message: "Sync ${{ inputs.project }} changelog"
+          commit_message: "Sync ${{ inputs.project }} changelog from ${{ steps.clone.outputs.sha }}"
           repo: ${{ github.repository }}
           branch: ${{ github.ref_name }}
           empty: false
