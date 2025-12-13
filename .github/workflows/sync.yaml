@@ -47,6 +47,9 @@ jobs:
           mkdir -p "${{ inputs.project }}"
           rsync -av --delete "/tmp/source/${{ inputs.path }}/" "${{ inputs.project }}/"
 
+      - name: Stage changes
+        run: git add .
+
       - name: Generate app token
         id: app-token
         uses: actions/create-github-app-token@v1
