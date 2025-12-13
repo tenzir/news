@@ -8,8 +8,10 @@ on:
         required: true
         type: choice
         options:
-          - tenzir
+          - changelog
           - docs
+          - mcp
+          - tenzir
           - test
       path:
         description: "Path to changelog directory in source repo"
@@ -25,21 +27,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  validate:
-    name: Validate Input
-    runs-on: ubuntu-latest
-    steps:
-      - name: Validate project parameter
-        run: |
-          if [[ "${{ inputs.project }}" != "tenzir" && "${{ inputs.project }}" != "docs" && "${{ inputs.project }}" != "test" ]]; then
-            echo "Error: project must be 'tenzir', 'docs', or 'test'"
-            exit 1
-          fi
-          echo "Valid project: ${{ inputs.project }}"
-
   sync:
     name: Sync Changelog
-    needs: validate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
