@@ -80,10 +80,10 @@ jobs:
           git config user.name 'tenzir-bot'
           git config user.email 'engineering@tenzir.com'
           git remote set-url origin https://x-access-token:${GITHUB_APP_TOKEN}@github.com/${{ github.repository }}.git
-          if git diff --quiet; then
+          git add .
+          if git diff --cached --quiet; then
             echo "No changes needed for ${{ inputs.project }} changelog"
           else
-            git add .
             git commit -m "Sync ${{ inputs.project }} changelog"
             git push
             echo "Synced ${{ inputs.project }} changelog"
