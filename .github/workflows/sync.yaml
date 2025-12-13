@@ -3,16 +3,12 @@ name: Sync
 on:
   workflow_dispatch:
     inputs:
+      # The validation step verifies via GitHub API that the repository exists
+      # in the tenzir organization, rejecting path traversal and typos.
       project:
-        description: "Project to sync"
+        description: "Project to sync (any tenzir/* repo)"
         required: true
-        type: choice
-        options:
-          - changelog
-          - docs
-          - mcp
-          - tenzir
-          - test
+        type: string
       path:
         description: "Path to changelog directory in source repo"
         required: false
@@ -33,6 +29,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Validate project name
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh api "repos/tenzir/${{ inputs.project }}" --silent; then
+            echo "::error::Repository tenzir/${{ inputs.project }} does not exist"
+            exit 1
+          fi
 
       - name: Clone source repository
         id: clone
