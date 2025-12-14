@@ -1,7 +1,10 @@
 id: changelog
 name: Tenzir Changelog
-description: The Tenzir Changelog Management Utility
+description: >-
+  The changelog management framework that powers the Tenzir ecosystem. It
+  curates changelog entries, ships release notes, and assembles public
+  changelogs.
 repository: tenzir/changelog
 components:
-- cli
-- python
+  - cli
+  - python
