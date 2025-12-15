@@ -10,6 +10,10 @@ inputs:
     description: Path to changelog in source repo
     required: false
     default: changelog
+  extra_paths:
+    description: Additional paths to sync (space-separated)
+    required: false
+    default: ""
   token:
     description: GitHub token with workflow trigger permissions
     required: true
@@ -34,4 +38,5 @@ runs:
           --repo "${{ inputs.target }}" \
           --ref "${{ inputs.ref }}" \
           --field project="${{ inputs.project }}" \
-          --field path="${{ inputs.path }}"
+          --field path="${{ inputs.path }}" \
+          --field extra_paths="${{ inputs.extra_paths }}"

@@ -14,6 +14,11 @@ on:
         required: false
         default: "changelog"
         type: string
+      extra_paths:
+        description: "Additional paths to sync (space-separated)"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: write
@@ -49,8 +54,21 @@ jobs:
 
       - name: Sync changelog
         run: |
-          mkdir -p "${{ inputs.project }}"
-          rsync -av --delete "/tmp/source/${{ inputs.path }}/" "${{ inputs.project }}/"
+          mkdir -p "${{ inputs.project }}/changelog"
+          rsync -av --delete "/tmp/source/${{ inputs.path }}/" "${{ inputs.project }}/changelog/"
+
+      - name: Sync extra paths
+        if: inputs.extra_paths != ''
+        run: |
+          cd /tmp/source
+          for pattern in ${{ inputs.extra_paths }}; do
+            for path in $pattern; do
+              if [[ -d "$path" ]]; then
+                mkdir -p "$GITHUB_WORKSPACE/${{ inputs.project }}/$path"
+                rsync -av --delete "$path/" "$GITHUB_WORKSPACE/${{ inputs.project }}/$path/"
+              fi
+            done
+          done
 
       - name: Stage changes
         run: git add .
