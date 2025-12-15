@@ -1,9 +1,8 @@
 id: changelog
 name: Tenzir Changelog
 description: >-
-  The changelog management framework that powers the Tenzir ecosystem. It
-  curates changelog entries, ships release notes, and assembles public
-  changelogs.
+  A changelog management framework that curates entries, ships release notes,
+  and assembles public changelogs.
 repository: tenzir/changelog
 components:
   - cli
