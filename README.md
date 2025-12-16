@@ -102,3 +102,21 @@ jobs:
 The `extra_paths` input accepts glob patterns for additional changelog
 directories. Each matched directory syncs as a separate project (e.g.,
 `plugins/foo/changelog` syncs to `foo/` in this repository).
+
+### 📣 Discord Notifications
+
+The sync workflow can send notifications to Discord when new changelog entries
+or releases are detected. Configure these repository secrets to enable:
+
+| Secret                      | Description                                  |
+| --------------------------- | -------------------------------------------- |
+| `DISCORD_CHANGELOG_WEBHOOK` | Webhook URL for individual changelog entries |
+| `DISCORD_RELEASE_WEBHOOK`   | Webhook URL for release announcements        |
+
+Both are optional. If not set, the corresponding notifications are skipped.
+
+**Entry notifications** are sent for each new changelog entry file detected
+during sync. They include the entry title, description, type, and author.
+
+**Release notifications** are sent when a new release appears (detected by a new
+`notes.md` file in a `releases/` directory). They include the full release notes.

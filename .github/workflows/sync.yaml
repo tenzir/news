@@ -52,6 +52,13 @@ jobs:
             /tmp/source
           echo "sha=$(git -C /tmp/source rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
+      - name: Snapshot existing files
+        id: snapshot
+        run: |
+          # Record existing entry files and release directories before sync
+          find "${{ inputs.project }}" -path "*/entries/*.md" 2>/dev/null | sort > /tmp/entries-before.txt || true
+          find "${{ inputs.project }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-before.txt || true
+
       - name: Sync changelog
         run: |
           mkdir -p "${{ inputs.project }}/changelog"
@@ -69,6 +76,52 @@ jobs:
               fi
             done
           done
+
+      - name: Set up Python
+        if: secrets.DISCORD_CHANGELOG_WEBHOOK != '' || secrets.DISCORD_RELEASE_WEBHOOK != ''
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install notification dependencies
+        if: secrets.DISCORD_CHANGELOG_WEBHOOK != '' || secrets.DISCORD_RELEASE_WEBHOOK != ''
+        run: pip install -r .github/scripts/requirements.txt
+
+      - name: Notify Discord of new entries
+        if: secrets.DISCORD_CHANGELOG_WEBHOOK != ''
+        env:
+          DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+        run: |
+          # Find new entry files
+          find "${{ inputs.project }}" -path "*/entries/*.md" 2>/dev/null | sort > /tmp/entries-after.txt || true
+          comm -13 /tmp/entries-before.txt /tmp/entries-after.txt > /tmp/new-entries.txt || true
+
+          # Send notification for each new entry
+          while IFS= read -r entry; do
+            [[ -z "$entry" ]] && continue
+            echo "Notifying Discord about new entry: $entry"
+            python .github/scripts/discord-notify.py entry "${{ inputs.project }}" "$entry" "$DISCORD_CHANGELOG_WEBHOOK" || true
+            sleep 1  # Rate limiting
+          done < /tmp/new-entries.txt
+
+      - name: Notify Discord of new releases
+        if: secrets.DISCORD_RELEASE_WEBHOOK != ''
+        env:
+          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+        run: |
+          # Find new release notes
+          find "${{ inputs.project }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-after.txt || true
+          comm -13 /tmp/releases-before.txt /tmp/releases-after.txt > /tmp/new-releases.txt || true
+
+          # Send notification for each new release
+          while IFS= read -r notes_file; do
+            [[ -z "$notes_file" ]] && continue
+            # Extract version from path (e.g., project/changelog/releases/v1.0.0/notes.md -> v1.0.0)
+            version=$(echo "$notes_file" | sed -n 's|.*/releases/\([^/]*\)/notes.md|\1|p')
+            echo "Notifying Discord about new release: ${{ inputs.project }} $version"
+            python .github/scripts/discord-notify.py release "${{ inputs.project }}" "$version" "$notes_file" "$DISCORD_RELEASE_WEBHOOK" || true
+            sleep 1  # Rate limiting
+          done < /tmp/new-releases.txt
 
       - name: Stage changes
         run: git add .

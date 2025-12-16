@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""Discord notification script for changelog entries and releases."""
+
+import re
+from pathlib import Path
+
+import click
+import yaml
+from discord_webhook import DiscordEmbed, DiscordWebhook
+
+# Type configuration: emoji, label, and embed color
+TYPE_CONFIG = {
+    "feature": ("🚀", "Feature", 0x58ACFF),  # Blue
+    "change": ("🔄", "Change", 0x9B59B6),  # Purple
+    "breaking": ("💥", "Breaking Change", 0xE74C3C),  # Red
+    "bugfix": ("🐛", "Bug Fix", 0x2ECC71),  # Green
+    "fix": ("🐛", "Bug Fix", 0x2ECC71),
+}
+DEFAULT_TYPE = ("📝", "Update", 0x58ACFF)
+
+
+def parse_entry(file_path: Path) -> dict:
+    """Parse a changelog entry file with YAML frontmatter."""
+    content = file_path.read_text()
+
+    # Split frontmatter and body
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return {"title": file_path.stem, "type": "change", "body": content}
+
+    frontmatter = yaml.safe_load(parts[1]) or {}
+    body = parts[2].strip()
+
+    # Normalize singular/plural fields
+    authors = frontmatter.get("authors") or []
+    if not authors and "author" in frontmatter:
+        authors = [frontmatter["author"]]
+
+    prs = frontmatter.get("prs") or []
+    if not prs and "pr" in frontmatter:
+        prs = [frontmatter["pr"]]
+
+    return {
+        "title": frontmatter.get("title", file_path.stem),
+        "type": frontmatter.get("type", "change"),
+        "authors": authors,
+        "prs": prs,
+        "body": body,
+    }
+
+
+def strip_markdown_links(text: str) -> str:
+    """Convert [text](url) to just text - Discord doesn't support markdown links."""
+    return re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+
+
+def truncate(text: str, max_length: int = 4000) -> str:
+    """Truncate text to fit Discord's embed limits."""
+    if len(text) <= max_length:
+        return text
+    return text[: max_length - 20] + "\n\n*[Truncated]*"
+
+
+@click.group()
+def cli():
+    """Send Discord notifications for changelog updates."""
+
+
+@cli.command()
+@click.argument("project")
+@click.argument("file", type=click.Path(exists=True, path_type=Path))
+@click.argument("webhook_url")
+def entry(project: str, file: Path, webhook_url: str):
+    """Send a notification for a changelog entry."""
+    data = parse_entry(file)
+
+    emoji, label, color = TYPE_CONFIG.get(data["type"], DEFAULT_TYPE)
+
+    # Build URL - prefer PR link, fall back to repo
+    if data["prs"]:
+        url = f"https://github.com/tenzir/{project}/pull/{data['prs'][0]}"
+    else:
+        url = f"https://github.com/tenzir/{project}"
+
+    # Build description
+    body = strip_markdown_links(data["body"])
+    description = truncate(body, 3800)
+
+    # Add metadata
+    meta_parts = []
+    if data["authors"]:
+        authors_str = ", ".join(f"@{a}" for a in data["authors"])
+        meta_parts.append(f"By {authors_str}")
+    if data["prs"]:
+        prs_str = ", ".join(f"#{pr}" for pr in data["prs"])
+        meta_parts.append(prs_str)
+
+    if meta_parts:
+        description += f"\n\n*{' · '.join(meta_parts)}*"
+
+    # Create and send embed
+    webhook = DiscordWebhook(url=webhook_url)
+    embed = DiscordEmbed(
+        title=data["title"],
+        description=description,
+        color=color,
+        url=url,
+    )
+    embed.set_author(
+        name=project,
+        url=f"https://github.com/tenzir/{project}",
+    )
+    embed.set_footer(text=f"{emoji} {label}")
+    webhook.add_embed(embed)
+    webhook.execute()
+
+
+@cli.command()
+@click.argument("project")
+@click.argument("version")
+@click.argument("notes_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("webhook_url")
+def release(project: str, version: str, notes_file: Path, webhook_url: str):
+    """Send a notification for a release."""
+    notes = notes_file.read_text()
+    notes = strip_markdown_links(notes)
+    notes = truncate(notes, 3800)
+
+    url = f"https://github.com/tenzir/{project}/releases/tag/{version}"
+
+    webhook = DiscordWebhook(url=webhook_url)
+    embed = DiscordEmbed(
+        title=f"🎉 {version} Released",
+        description=notes,
+        color=0x2ECC71,  # Green
+        url=url,
+    )
+    embed.set_author(
+        name=project,
+        url=f"https://github.com/tenzir/{project}",
+    )
+    webhook.add_embed(embed)
+    webhook.execute()
+
+
+if __name__ == "__main__":
+    cli()
