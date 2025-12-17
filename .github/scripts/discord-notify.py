@@ -8,6 +8,22 @@ import click
 import yaml
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
+
+def get_config(project: str) -> dict:
+    """Get config from config.yaml."""
+    config_path = Path(project) / "changelog" / "config.yaml"
+    if config_path.exists():
+        return yaml.safe_load(config_path.read_text()) or {}
+    return {}
+
+
+def get_repository(project: str, config: dict | None = None) -> str:
+    """Get repository from config, falling back to tenzir/{project}."""
+    if config is None:
+        config = get_config(project)
+    return config.get("repository", f"tenzir/{project}")
+
+
 # Type configuration: emoji, label, and embed color
 TYPE_CONFIG = {
     "feature": ("🚀", "Feature", 0x58ACFF),  # Blue
@@ -72,15 +88,17 @@ def cli():
 @click.argument("webhook_url")
 def entry(project: str, file: Path, webhook_url: str):
     """Send a notification for a changelog entry."""
+    config = get_config(project)
+    repo = get_repository(project, config)
     data = parse_entry(file)
 
     emoji, label, color = TYPE_CONFIG.get(data["type"], DEFAULT_TYPE)
 
     # Build URL - prefer PR link, fall back to repo
     if data["prs"]:
-        url = f"https://github.com/tenzir/{project}/pull/{data['prs'][0]}"
+        url = f"https://github.com/{repo}/pull/{data['prs'][0]}"
     else:
-        url = f"https://github.com/tenzir/{project}"
+        url = f"https://github.com/{repo}"
 
     # Build description
     body = strip_markdown_links(data["body"])
@@ -107,8 +125,8 @@ def entry(project: str, file: Path, webhook_url: str):
         url=url,
     )
     embed.set_author(
-        name=f"tenzir/{project}",
-        url=f"https://github.com/tenzir/{project}",
+        name=repo,
+        url=f"https://github.com/{repo}",
     )
     embed.set_footer(text=f"{emoji} {label}")
     webhook.add_embed(embed)
@@ -122,22 +140,26 @@ def entry(project: str, file: Path, webhook_url: str):
 @click.argument("webhook_url")
 def release(project: str, version: str, notes_file: Path, webhook_url: str):
     """Send a notification for a release."""
+    config = get_config(project)
+    repo = get_repository(project, config)
+    title = config.get("name", project)
+
     notes = notes_file.read_text()
     notes = strip_markdown_links(notes)
     notes = truncate(notes, 3800)
 
-    url = f"https://github.com/tenzir/{project}/releases/tag/{version}"
+    url = f"https://github.com/{repo}/releases/tag/{version}"
 
     webhook = DiscordWebhook(url=webhook_url)
     embed = DiscordEmbed(
-        title=f"🎉 {version} Released",
+        title=f"{title} {version}",
         description=notes,
         color=0x2ECC71,  # Green
         url=url,
     )
     embed.set_author(
-        name=f"tenzir/{project}",
-        url=f"https://github.com/tenzir/{project}",
+        name=repo,
+        url=f"https://github.com/{repo}",
     )
     webhook.add_embed(embed)
     webhook.execute()
