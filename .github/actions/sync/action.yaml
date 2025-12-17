@@ -14,6 +14,10 @@ inputs:
     description: Additional paths to sync (space-separated)
     required: false
     default: ""
+  skip_notifications:
+    description: Skip Discord notifications (for initial imports)
+    required: false
+    default: "false"
   token:
     description: GitHub token with workflow trigger permissions
     required: true
@@ -39,4 +43,5 @@ runs:
           --ref "${{ inputs.ref }}" \
           --field project="${{ inputs.project }}" \
           --field path="${{ inputs.path }}" \
-          --field extra_paths="${{ inputs.extra_paths }}"
+          --field extra_paths="${{ inputs.extra_paths }}" \
+          --field skip_notifications="${{ inputs.skip_notifications }}"
