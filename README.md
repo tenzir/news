@@ -56,6 +56,9 @@ The action uses sensible defaults:
 
 Override these by passing additional inputs to the action if needed.
 
+For initial imports with existing changelog entries, add `skip_notifications: true`
+to avoid flooding Discord, then remove it after the first sync.
+
 ### 🧩 Projects with Modules
 
 For projects that contain modules with their own changelogs (e.g., a monorepo
