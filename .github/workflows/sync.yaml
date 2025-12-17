@@ -31,6 +31,9 @@ jobs:
   sync:
     name: Sync Changelog
     runs-on: ubuntu-latest
+    env:
+      DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+      DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -78,19 +81,17 @@ jobs:
           done
 
       - name: Set up Python
-        if: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK != '' || secrets.DISCORD_RELEASE_WEBHOOK != '' }}
+        if: env.DISCORD_CHANGELOG_WEBHOOK != '' || env.DISCORD_RELEASE_WEBHOOK != ''
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install notification dependencies
-        if: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK != '' || secrets.DISCORD_RELEASE_WEBHOOK != '' }}
+        if: env.DISCORD_CHANGELOG_WEBHOOK != '' || env.DISCORD_RELEASE_WEBHOOK != ''
         run: pip install -r .github/scripts/requirements.txt
 
       - name: Notify Discord of new entries
-        if: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK != '' }}
-        env:
-          DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+        if: env.DISCORD_CHANGELOG_WEBHOOK != ''
         run: |
           # Find new entry files
           find "${{ inputs.project }}" -path "*/entries/*.md" 2>/dev/null | sort > /tmp/entries-after.txt || true
@@ -105,9 +106,7 @@ jobs:
           done < /tmp/new-entries.txt
 
       - name: Notify Discord of new releases
-        if: ${{ secrets.DISCORD_RELEASE_WEBHOOK != '' }}
-        env:
-          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+        if: env.DISCORD_RELEASE_WEBHOOK != ''
         run: |
           # Find new release notes
           find "${{ inputs.project }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-after.txt || true
