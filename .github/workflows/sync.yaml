@@ -78,17 +78,17 @@ jobs:
           done
 
       - name: Set up Python
-        if: secrets.DISCORD_CHANGELOG_WEBHOOK != '' || secrets.DISCORD_RELEASE_WEBHOOK != ''
+        if: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK != '' || secrets.DISCORD_RELEASE_WEBHOOK != '' }}
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install notification dependencies
-        if: secrets.DISCORD_CHANGELOG_WEBHOOK != '' || secrets.DISCORD_RELEASE_WEBHOOK != ''
+        if: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK != '' || secrets.DISCORD_RELEASE_WEBHOOK != '' }}
         run: pip install -r .github/scripts/requirements.txt
 
       - name: Notify Discord of new entries
-        if: secrets.DISCORD_CHANGELOG_WEBHOOK != ''
+        if: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK != '' }}
         env:
           DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
         run: |
@@ -105,7 +105,7 @@ jobs:
           done < /tmp/new-entries.txt
 
       - name: Notify Discord of new releases
-        if: secrets.DISCORD_RELEASE_WEBHOOK != ''
+        if: ${{ secrets.DISCORD_RELEASE_WEBHOOK != '' }}
         env:
           DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
         run: |
