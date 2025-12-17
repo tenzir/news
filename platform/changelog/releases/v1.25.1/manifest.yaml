@@ -1,0 +1,4 @@
+created: 2025-12-16
+title: "Tenzir Platform v1.25.1"
+intro: >-
+  This patch release fixes an issue with default filesystem paths in the Tenzir Platform docker containers for Sovereign Edition users.

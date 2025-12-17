@@ -1,0 +1,5 @@
+created: 2025-12-17
+title: "Tenzir Platform v1.6"
+intro: >-
+  This release features a new UI for example pipelines and adds support for the
+  new TQL2 mode for nodes.

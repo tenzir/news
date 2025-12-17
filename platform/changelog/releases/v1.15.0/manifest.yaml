@@ -1,0 +1,4 @@
+created: 2025-12-17
+title: "External JWT Support"
+intro: >-
+  This release adds support for reading externally-supplied JWT tokens from a header, instead of manually clicking on the _Log In_ button.

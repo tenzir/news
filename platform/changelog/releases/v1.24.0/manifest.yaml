@@ -1,0 +1,4 @@
+created: 2025-12-10
+title: "Tenzir Platform v1.24.0"
+intro: >-
+  This release includes many small UI fixes, as well as new TLS options for the websocket gateway.
