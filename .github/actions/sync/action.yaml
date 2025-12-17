@@ -7,6 +7,10 @@ inputs:
       Project name (usually not needed - defaults to source repo name)
     required: false
     default: ${{ github.event.repository.name }}
+  target:
+    description: Target directory name in news repo (defaults to project name)
+    required: false
+    default: ""
   path:
     description: Path to changelog in source repo
     required: false
@@ -22,7 +26,7 @@ inputs:
   token:
     description: GitHub token with workflow trigger permissions
     required: true
-  target:
+  target_repo:
     description: Target repository to sync to
     required: false
     default: tenzir/news
@@ -40,9 +44,10 @@ runs:
         GH_TOKEN: ${{ inputs.token }}
       run: |
         gh workflow run sync.yaml \
-          --repo "${{ inputs.target }}" \
+          --repo "${{ inputs.target_repo }}" \
           --ref "${{ inputs.ref }}" \
           --field project="${{ inputs.project }}" \
+          --field target="${{ inputs.target }}" \
           --field path="${{ inputs.path }}" \
           --field extra_paths="${{ inputs.extra_paths }}" \
           --field skip_notifications="${{ inputs.skip_notifications }}"

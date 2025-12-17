@@ -6,8 +6,12 @@ on:
       # The validation step verifies via GitHub API that the repository exists
       # in the tenzir organization, rejecting path traversal and typos.
       project:
-        description: "Project to sync (any tenzir/* repo)"
+        description: "Source repository to sync (any tenzir/* repo)"
         required: true
+        type: string
+      target:
+        description: "Target directory name (defaults to project name)"
+        required: false
         type: string
       path:
         description: "Path to changelog directory in source repo"
@@ -48,6 +52,12 @@ jobs:
           private-key: ${{ secrets.TENZIR_GITHUB_APP_PRIVATE_KEY }}
           owner: tenzir
 
+      - name: Resolve target directory
+        id: resolve
+        run: |
+          target="${{ inputs.target }}"
+          echo "dir=${target:-${{ inputs.project }}}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -76,13 +86,13 @@ jobs:
           # Record existing unreleased entries and release notes before sync
           # Only track unreleased/ - entries in releases/*/entries/ are archived
           # copies that were already notified when they were unreleased
-          find "${{ inputs.project }}" -path "*/unreleased/*.md" 2>/dev/null | sort > /tmp/entries-before.txt || true
-          find "${{ inputs.project }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-before.txt || true
+          find "${{ steps.resolve.outputs.dir }}" -path "*/unreleased/*.md" 2>/dev/null | sort > /tmp/entries-before.txt || true
+          find "${{ steps.resolve.outputs.dir }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-before.txt || true
 
       - name: Sync changelog
         run: |
-          mkdir -p "${{ inputs.project }}/changelog"
-          rsync -av --delete "/tmp/source/${{ inputs.path }}/" "${{ inputs.project }}/changelog/"
+          mkdir -p "${{ steps.resolve.outputs.dir }}/changelog"
+          rsync -av --delete "/tmp/source/${{ inputs.path }}/" "${{ steps.resolve.outputs.dir }}/changelog/"
 
       - name: Sync extra paths
         if: inputs.extra_paths != ''
@@ -91,8 +101,8 @@ jobs:
           for pattern in ${{ inputs.extra_paths }}; do
             for path in $pattern; do
               if [[ -d "$path" ]]; then
-                mkdir -p "$GITHUB_WORKSPACE/${{ inputs.project }}/$path"
-                rsync -av --delete "$path/" "$GITHUB_WORKSPACE/${{ inputs.project }}/$path/"
+                mkdir -p "$GITHUB_WORKSPACE/${{ steps.resolve.outputs.dir }}/$path"
+                rsync -av --delete "$path/" "$GITHUB_WORKSPACE/${{ steps.resolve.outputs.dir }}/$path/"
               fi
             done
           done
@@ -112,14 +122,14 @@ jobs:
         run: |
           # Find new unreleased entries only - released entries were already
           # notified when they were in unreleased/
-          find "${{ inputs.project }}" -path "*/unreleased/*.md" 2>/dev/null | sort > /tmp/entries-after.txt || true
+          find "${{ steps.resolve.outputs.dir }}" -path "*/unreleased/*.md" 2>/dev/null | sort > /tmp/entries-after.txt || true
           comm -13 /tmp/entries-before.txt /tmp/entries-after.txt > /tmp/new-entries.txt || true
 
           # Send notification for each new entry
           while IFS= read -r entry; do
             [[ -z "$entry" ]] && continue
             echo "Notifying Discord about new entry: $entry"
-            python .github/scripts/discord-notify.py entry "${{ inputs.project }}" "$entry" "$DISCORD_CHANGELOG_WEBHOOK" || true
+            python .github/scripts/discord-notify.py entry "${{ steps.resolve.outputs.dir }}" "$entry" "$DISCORD_CHANGELOG_WEBHOOK" || true
             sleep 1  # Rate limiting
           done < /tmp/new-entries.txt
 
@@ -127,7 +137,7 @@ jobs:
         if: env.DISCORD_RELEASE_WEBHOOK != '' && !inputs.skip_notifications
         run: |
           # Find new release notes
-          find "${{ inputs.project }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-after.txt || true
+          find "${{ steps.resolve.outputs.dir }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-after.txt || true
           comm -13 /tmp/releases-before.txt /tmp/releases-after.txt > /tmp/new-releases.txt || true
 
           # Send notification for each new release
@@ -135,8 +145,8 @@ jobs:
             [[ -z "$notes_file" ]] && continue
             # Extract version from path (e.g., project/changelog/releases/v1.0.0/notes.md -> v1.0.0)
             version=$(echo "$notes_file" | sed -n 's|.*/releases/\([^/]*\)/notes.md|\1|p')
-            echo "Notifying Discord about new release: ${{ inputs.project }} $version"
-            python .github/scripts/discord-notify.py release "${{ inputs.project }}" "$version" "$notes_file" "$DISCORD_RELEASE_WEBHOOK" || true
+            echo "Notifying Discord about new release: ${{ steps.resolve.outputs.dir }} $version"
+            python .github/scripts/discord-notify.py release "${{ steps.resolve.outputs.dir }}" "$version" "$notes_file" "$DISCORD_RELEASE_WEBHOOK" || true
             sleep 1  # Rate limiting
           done < /tmp/new-releases.txt
 

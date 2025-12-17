@@ -52,9 +52,18 @@ jobs:
 The action uses sensible defaults:
 
 - `project`: repository name (e.g., `mcp` for `tenzir/mcp`)
+- `target`: same as `project` (directory name in this repo)
 - `path`: `changelog` (path to changelog directory in source repo)
 
-Override these by passing additional inputs to the action if needed.
+Override these by passing additional inputs to the action if needed. For example,
+to sync from `tenzir/platform-internal` to `platform/` in this repo:
+
+```yaml
+- uses: tenzir/news/.github/actions/sync@main
+  with:
+    token: ${{ steps.app-token.outputs.token }}
+    target: platform
+```
 
 For initial imports with existing changelog entries, add `skip_notifications: true`
 to avoid flooding Discord, then remove it after the first sync.
