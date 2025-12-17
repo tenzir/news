@@ -107,7 +107,7 @@ def entry(project: str, file: Path, webhook_url: str):
         url=url,
     )
     embed.set_author(
-        name=project,
+        name=f"tenzir/{project}",
         url=f"https://github.com/tenzir/{project}",
     )
     embed.set_footer(text=f"{emoji} {label}")
@@ -136,7 +136,7 @@ def release(project: str, version: str, notes_file: Path, webhook_url: str):
         url=url,
     )
     embed.set_author(
-        name=project,
+        name=f"tenzir/{project}",
         url=f"https://github.com/tenzir/{project}",
     )
     webhook.add_embed(embed)
