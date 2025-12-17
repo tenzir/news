@@ -152,7 +152,7 @@ def release(project: str, version: str, notes_file: Path, webhook_url: str):
 
     webhook = DiscordWebhook(url=webhook_url)
     embed = DiscordEmbed(
-        title=f"{title} {version}",
+        title=f"**{title}** {version}",
         description=notes,
         color=0x2ECC71,  # Green
         url=url,
