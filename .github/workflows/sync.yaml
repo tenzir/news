@@ -19,6 +19,11 @@ on:
         required: false
         default: ""
         type: string
+      skip_notifications:
+        description: "Skip Discord notifications (for initial imports)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -93,7 +98,7 @@ jobs:
         run: pip install -r .github/scripts/requirements.txt
 
       - name: Notify Discord of new entries
-        if: env.DISCORD_CHANGELOG_WEBHOOK != ''
+        if: env.DISCORD_CHANGELOG_WEBHOOK != '' && !inputs.skip_notifications
         run: |
           # Find new unreleased entries only - released entries were already
           # notified when they were in unreleased/
@@ -109,7 +114,7 @@ jobs:
           done < /tmp/new-entries.txt
 
       - name: Notify Discord of new releases
-        if: env.DISCORD_RELEASE_WEBHOOK != ''
+        if: env.DISCORD_RELEASE_WEBHOOK != '' && !inputs.skip_notifications
         run: |
           # Find new release notes
           find "${{ inputs.project }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-after.txt || true
