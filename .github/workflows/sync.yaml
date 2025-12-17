@@ -40,12 +40,20 @@ jobs:
       DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
       DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
     steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.TENZIR_GITHUB_APP_ID }}
+          private-key: ${{ secrets.TENZIR_GITHUB_APP_PRIVATE_KEY }}
+          owner: tenzir
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Validate project name
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           if ! gh api "repos/tenzir/${{ inputs.project }}" --silent; then
             echo "::error::Repository tenzir/${{ inputs.project }} does not exist"
@@ -54,9 +62,11 @@ jobs:
 
       - name: Clone source repository
         id: clone
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git clone --depth 1 \
-            https://github.com/tenzir/${{ inputs.project }}.git \
+            https://x-access-token:${GH_TOKEN}@github.com/tenzir/${{ inputs.project }}.git \
             /tmp/source
           echo "sha=$(git -C /tmp/source rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
@@ -132,13 +142,6 @@ jobs:
 
       - name: Stage changes
         run: git add .
-
-      - name: Generate app token
-        id: app-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ vars.TENZIR_GITHUB_APP_ID }}
-          private-key: ${{ secrets.TENZIR_GITHUB_APP_PRIVATE_KEY }}
 
       - name: Commit changes
         uses: planetscale/ghcommit-action@v0.2.0
