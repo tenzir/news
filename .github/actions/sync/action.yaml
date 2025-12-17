@@ -3,7 +3,8 @@ description: Trigger changelog sync to tenzir/news
 
 inputs:
   project:
-    description: Project name
+    description: >-
+      Project name (usually not needed - defaults to source repo name)
     required: false
     default: ${{ github.event.repository.name }}
   path:
