@@ -58,12 +58,10 @@ jobs:
       - name: Snapshot existing files
         id: snapshot
         run: |
-          # Record existing entry files and release directories before sync
-          # Check both unreleased/ (pending) and releases/*/entries/ (released)
-          {
-            find "${{ inputs.project }}" -path "*/unreleased/*.md" 2>/dev/null
-            find "${{ inputs.project }}" -path "*/entries/*.md" 2>/dev/null
-          } | sort > /tmp/entries-before.txt || true
+          # Record existing unreleased entries and release notes before sync
+          # Only track unreleased/ - entries in releases/*/entries/ are archived
+          # copies that were already notified when they were unreleased
+          find "${{ inputs.project }}" -path "*/unreleased/*.md" 2>/dev/null | sort > /tmp/entries-before.txt || true
           find "${{ inputs.project }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-before.txt || true
 
       - name: Sync changelog
@@ -97,11 +95,9 @@ jobs:
       - name: Notify Discord of new entries
         if: env.DISCORD_CHANGELOG_WEBHOOK != ''
         run: |
-          # Find new entry files (both unreleased and released entries)
-          {
-            find "${{ inputs.project }}" -path "*/unreleased/*.md" 2>/dev/null
-            find "${{ inputs.project }}" -path "*/entries/*.md" 2>/dev/null
-          } | sort > /tmp/entries-after.txt || true
+          # Find new unreleased entries only - released entries were already
+          # notified when they were in unreleased/
+          find "${{ inputs.project }}" -path "*/unreleased/*.md" 2>/dev/null | sort > /tmp/entries-after.txt || true
           comm -13 /tmp/entries-before.txt /tmp/entries-after.txt > /tmp/new-entries.txt || true
 
           # Send notification for each new entry
