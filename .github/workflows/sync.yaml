@@ -162,3 +162,8 @@ jobs:
           empty: false
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Trigger docs rebuild
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: gh workflow run docs.yaml --repo tenzir/docs
