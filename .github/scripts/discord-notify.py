@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Discord notification script for changelog entries and releases."""
 
-import re
 from pathlib import Path
 
 import click
@@ -86,11 +85,6 @@ def parse_entry(file_path: Path) -> dict:
     }
 
 
-def strip_markdown_links(text: str) -> str:
-    """Convert [text](url) to just text - Discord doesn't support markdown links."""
-    return re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
-
-
 def truncate(text: str, max_length: int = 4000) -> str:
     """Truncate text to fit Discord's embed limits."""
     if len(text) <= max_length:
@@ -122,8 +116,7 @@ def entry(project: str, file: Path, webhook_url: str):
         url = f"https://github.com/{repo}"
 
     # Build description
-    body = strip_markdown_links(data["body"])
-    description = truncate(body, 3800)
+    description = truncate(data["body"], 3800)
 
     # Add metadata
     meta_parts = []
@@ -170,7 +163,6 @@ def release(project: str, version: str, notes_file: Path, webhook_url: str):
     title = config.get("name", project)
 
     notes = notes_file.read_text()
-    notes = strip_markdown_links(notes)
     notes = truncate(notes, 3800)
 
     url = f"https://github.com/{repo}/releases/tag/{version}"
