@@ -50,8 +50,8 @@ TYPE_CONFIG = {
     "feature": ("🚀", "Feature", 0x58ACFF),  # Blue
     "change": ("🔄", "Change", 0x9B59B6),  # Purple
     "breaking": ("💥", "Breaking Change", 0xE74C3C),  # Red
-    "bugfix": ("🐛", "Bug Fix", 0x2ECC71),  # Green
-    "fix": ("🐛", "Bug Fix", 0x2ECC71),
+    "bugfix": ("🐞", "Bug Fix", 0x2ECC71),  # Green
+    "fix": ("🐞", "Bug Fix", 0x2ECC71),
 }
 DEFAULT_TYPE = ("📝", "Update", 0x58ACFF)
 
@@ -128,10 +128,14 @@ def entry(project: str, file: Path, webhook_url: str):
     # Add metadata
     meta_parts = []
     if data["authors"]:
-        authors_str = ", ".join(f"@{a}" for a in data["authors"])
+        authors_str = ", ".join(
+            f"[@{a}](https://github.com/{a})" for a in data["authors"]
+        )
         meta_parts.append(f"By {authors_str}")
     if data["prs"]:
-        prs_str = ", ".join(f"#{pr}" for pr in data["prs"])
+        prs_str = ", ".join(
+            f"[#{pr}](https://github.com/{repo}/pull/{pr})" for pr in data["prs"]
+        )
         meta_parts.append(prs_str)
 
     if meta_parts:
