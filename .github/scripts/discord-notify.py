@@ -85,6 +85,14 @@ def parse_entry(file_path: Path) -> dict:
     }
 
 
+def strip_leading_heading(text: str) -> str:
+    """Remove the leading # heading from text (embed title already serves this purpose)."""
+    lines = text.lstrip().split("\n", 1)
+    if lines and lines[0].startswith("# "):
+        return lines[1].lstrip() if len(lines) > 1 else ""
+    return text
+
+
 def truncate(text: str, max_length: int = 4000) -> str:
     """Truncate text to fit Discord's embed limits."""
     if len(text) <= max_length:
@@ -163,13 +171,14 @@ def release(project: str, version: str, notes_file: Path, webhook_url: str):
     title = config.get("name", project)
 
     notes = notes_file.read_text()
+    notes = strip_leading_heading(notes)
     notes = truncate(notes, 3800)
 
     url = f"https://github.com/{repo}/releases/tag/{version}"
 
     webhook = DiscordWebhook(url=webhook_url)
     embed = DiscordEmbed(
-        title=f"**{title}** {version}",
+        title=f"{title} {version}",
         description=notes,
         color=0x2ECC71,  # Green
         url=url,
