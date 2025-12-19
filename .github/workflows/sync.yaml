@@ -87,7 +87,8 @@ jobs:
           # Only track unreleased/ - entries in releases/*/entries/ are archived
           # copies that were already notified when they were unreleased
           find "${{ steps.resolve.outputs.dir }}" -path "*/unreleased/*.md" 2>/dev/null | sort > /tmp/entries-before.txt || true
-          find "${{ steps.resolve.outputs.dir }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-before.txt || true
+          # Only track top-level releases, not module releases
+          find "${{ steps.resolve.outputs.dir }}/changelog/releases" -name "notes.md" 2>/dev/null | sort > /tmp/releases-before.txt || true
 
       - name: Sync changelog
         run: |
@@ -136,8 +137,8 @@ jobs:
       - name: Notify Discord of new releases
         if: env.DISCORD_RELEASE_WEBHOOK != '' && !inputs.skip_notifications
         run: |
-          # Find new release notes
-          find "${{ steps.resolve.outputs.dir }}" -path "*/releases/*/notes.md" 2>/dev/null | sort > /tmp/releases-after.txt || true
+          # Find new top-level release notes (not module releases)
+          find "${{ steps.resolve.outputs.dir }}/changelog/releases" -name "notes.md" 2>/dev/null | sort > /tmp/releases-after.txt || true
           comm -13 /tmp/releases-before.txt /tmp/releases-after.txt > /tmp/new-releases.txt || true
 
           # Send notification for each new release
