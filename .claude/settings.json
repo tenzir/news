@@ -11,6 +11,6 @@
     "changelog@tenzir": true,
     "formatter@tenzir": true,
     "git@tenzir": true,
-    "writing@tenzir": true
+    "prose@tenzir": true
   }
 }
