@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Discord notification script for changelog entries and releases."""
 
+import re
 from pathlib import Path
 
 import click
@@ -93,6 +94,15 @@ def strip_leading_heading(text: str) -> str:
     return text
 
 
+def demote_headers(text: str) -> str:
+    """Demote ## headers to ### for better visual hierarchy in Discord.
+
+    Discord renders ## headers very prominently, often larger than the embed
+    title. Demoting to ### keeps section structure while respecting hierarchy.
+    """
+    return re.sub(r"^## ", "### ", text, flags=re.MULTILINE)
+
+
 def truncate(text: str, max_length: int = 4000) -> str:
     """Truncate text to fit Discord's embed limits."""
     if len(text) <= max_length:
@@ -172,6 +182,7 @@ def release(project: str, version: str, notes_file: Path, webhook_url: str):
 
     notes = notes_file.read_text()
     notes = strip_leading_heading(notes)
+    notes = demote_headers(notes)
     notes = truncate(notes, 3800)
 
     url = f"https://github.com/{repo}/releases/tag/{version}"

@@ -83,12 +83,12 @@ jobs:
       - name: Snapshot existing files
         id: snapshot
         run: |
-          # Record existing unreleased entries and release notes before sync
+          # Record existing unreleased entries and releases before sync
           # Only track unreleased/ - entries in releases/*/entries/ are archived
           # copies that were already notified when they were unreleased
           find "${{ steps.resolve.outputs.dir }}" -path "*/unreleased/*.md" 2>/dev/null | sort > /tmp/entries-before.txt || true
           # Only track top-level releases, not module releases
-          find "${{ steps.resolve.outputs.dir }}/changelog/releases" -name "notes.md" 2>/dev/null | sort > /tmp/releases-before.txt || true
+          find "${{ steps.resolve.outputs.dir }}/changelog/releases" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort > /tmp/releases-before.txt || true
 
       - name: Sync changelog
         run: |
@@ -137,17 +137,19 @@ jobs:
       - name: Notify Discord of new releases
         if: env.DISCORD_RELEASE_WEBHOOK != '' && !inputs.skip_notifications
         run: |
-          # Find new top-level release notes (not module releases)
-          find "${{ steps.resolve.outputs.dir }}/changelog/releases" -name "notes.md" 2>/dev/null | sort > /tmp/releases-after.txt || true
+          # Find new top-level releases (not module releases)
+          find "${{ steps.resolve.outputs.dir }}/changelog/releases" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort > /tmp/releases-after.txt || true
           comm -13 /tmp/releases-before.txt /tmp/releases-after.txt > /tmp/new-releases.txt || true
 
           # Send notification for each new release
-          while IFS= read -r notes_file; do
-            [[ -z "$notes_file" ]] && continue
-            # Extract version from path (e.g., project/changelog/releases/v1.0.0/notes.md -> v1.0.0)
-            version=$(echo "$notes_file" | sed -n 's|.*/releases/\([^/]*\)/notes.md|\1|p')
+          while IFS= read -r release_dir; do
+            [[ -z "$release_dir" ]] && continue
+            version=$(basename "$release_dir")
             echo "Notifying Discord about new release: ${{ steps.resolve.outputs.dir }} $version"
-            python .github/scripts/discord-notify.py release "${{ steps.resolve.outputs.dir }}" "$version" "$notes_file" "$DISCORD_RELEASE_WEBHOOK" || true
+            # Generate notes with explicit links for Discord
+            uvx tenzir-changelog --root "${{ steps.resolve.outputs.dir }}/changelog" \
+              release notes --explicit-links "$version" > /tmp/notes.md
+            python .github/scripts/discord-notify.py release "${{ steps.resolve.outputs.dir }}" "$version" /tmp/notes.md "$DISCORD_RELEASE_WEBHOOK" || true
             sleep 1  # Rate limiting
           done < /tmp/new-releases.txt
 
