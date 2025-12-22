@@ -1,4 +1,4 @@
-created: 2025-12-17
+created: 2025-07-16
 title: "Diagnostic Discovery"
 intro: >-
   This release adds two mechanism for a better diagnostics experience. Diagnostics are now shown directly in the editor. Additionally, the diagnostics heatmap in the pipeline overview can now be interacted with.

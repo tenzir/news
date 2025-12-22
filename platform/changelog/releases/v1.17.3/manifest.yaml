@@ -1,4 +1,4 @@
-created: 2025-12-17
+created: 2025-08-07
 title: "Fixed Download Urls"
 intro: >-
   This bugfix release fixes an issue where the Tenzir Platform would generate download URLs with an incorrect signature.

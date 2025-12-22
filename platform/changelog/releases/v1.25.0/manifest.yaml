@@ -1,4 +1,4 @@
-created: 2025-12-11
+created: 2025-12-15
 title: "Tenzir Platform v1.25.0"
 intro: >-
   This release includes some UI fixes and minor improvements to smooth out common workflows. We fixed incorrect rendering of negative durations, resolved an issue where the node selector reset during navigation, and addressed a layout issue that could hide the install button in the package drawer.
