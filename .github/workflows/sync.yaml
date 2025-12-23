@@ -108,6 +108,19 @@ jobs:
             done
           done
 
+      - name: Stage changes
+        run: git add .
+
+      - name: Commit changes
+        uses: planetscale/ghcommit-action@v0.2.0
+        with:
+          commit_message: "Sync changelog from tenzir/${{ inputs.project }}@${{ steps.clone.outputs.sha }}"
+          repo: ${{ github.repository }}
+          branch: ${{ github.ref_name }}
+          empty: false
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
       - name: Set up Python
         if: env.DISCORD_CHANGELOG_WEBHOOK != '' || env.DISCORD_RELEASE_WEBHOOK != ''
         uses: actions/setup-python@v5
@@ -152,19 +165,6 @@ jobs:
             python .github/scripts/discord-notify.py release "${{ steps.resolve.outputs.dir }}" "$version" /tmp/notes.md "$DISCORD_RELEASE_WEBHOOK" || true
             sleep 1  # Rate limiting
           done < /tmp/new-releases.txt
-
-      - name: Stage changes
-        run: git add .
-
-      - name: Commit changes
-        uses: planetscale/ghcommit-action@v0.2.0
-        with:
-          commit_message: "Sync changelog from tenzir/${{ inputs.project }}@${{ steps.clone.outputs.sha }}"
-          repo: ${{ github.repository }}
-          branch: ${{ github.ref_name }}
-          empty: false
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Trigger docs rebuild
         env:
