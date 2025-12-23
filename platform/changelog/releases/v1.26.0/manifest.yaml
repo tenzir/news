@@ -1,0 +1,5 @@
+created: 2025-12-23
+title: Tenzir Platform v1.26.0
+intro: >-
+  This release adds HashiCorp Vault as an external secret store for workspaces. The
+  integration supports token and AppRole authentication with the KV v2 secrets engine.
