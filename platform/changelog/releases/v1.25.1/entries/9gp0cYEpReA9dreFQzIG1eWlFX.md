@@ -3,7 +3,6 @@ title: "Replace tenant_manager/ path with platform_api/ in example configs"
 type: change
 author: lava
 created: 2025-12-16T11:27:38Z
-pr: 13
 ---
 
 We switched the docker images used by our example setups from one combined `tenzir/platform` image for both the Tenzir Platform API and the Tenzir Gateway to use separate images `tenzir/platform-api` and `tenzir/platform-gateway`.

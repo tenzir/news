@@ -3,7 +3,6 @@ title: "Switch default user for seaweed container"
 type: change
 author: lava
 created: 2025-12-17T13:24:10Z
-pr: 135
 ---
 
 To conform with best practices, we updated the `tenzir-seaweed` image to use a non-root user by default.

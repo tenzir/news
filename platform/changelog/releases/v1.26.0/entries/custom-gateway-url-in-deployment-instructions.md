@@ -3,7 +3,6 @@ title: Custom gateway URL in deployment instructions
 type: feature
 authors:
   - lava
-pr: 10
 created: 2025-12-22T11:29:43.6385Z
 ---
 

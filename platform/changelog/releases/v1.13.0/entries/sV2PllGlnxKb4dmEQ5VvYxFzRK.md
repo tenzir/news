@@ -3,7 +3,6 @@ title: "Better error handling in the Tenzir Platform CLI"
 type: feature
 author: lava
 created: 2025-12-17T13:24:10Z
-pr: 107
 ---
 
 When encountering authentication errors, the Tenzir Platform CLI now exits with a nice error message instead of printing a raw stacktrace:

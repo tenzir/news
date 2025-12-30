@@ -3,7 +3,6 @@ title: "Add secrets support for the Platform"
 type: feature
 author: lava
 created: 2025-12-17T13:24:10Z
-pr: 73
 ---
 
 With this release, the Tenzir Platform now supports storing secrets on a per-workspace level.

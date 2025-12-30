@@ -2,7 +2,6 @@
 title: "Make log level configurable through environment"
 type: feature
 authors: lava
-pr: 16
 ---
 
 The log level of the Tenzir Platform API and the Tenzir Gateway can now be configured with the `TENZIR_PLATFORM_LOG_LEVEL` environment variable.
