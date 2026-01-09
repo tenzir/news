@@ -79,7 +79,12 @@ The new design follows a single principle: **selection is always entry-centric, 
 
 **Migration guide**:
 
-| Old command | New command | | ----------------------------- | ------------------------------ | | `release notes v1.0.0` | `show v1.0.0 --release -m` | | `release notes v1.0.0 --json` | `show v1.0.0 --release --json` | | `release notes -` | `show --release -m` | | `release notes - --json` | `show --release --json` |
+| Old command                   | New command                    |
+| ----------------------------- | ------------------------------ |
+| `release notes v1.0.0`        | `show v1.0.0 --release -m`     |
+| `release notes v1.0.0 --json` | `show v1.0.0 --release --json` |
+| `release notes -`             | `show --release -m`            |
+| `release notes - --json`      | `show --release --json`        |
 
 **New capabilities**: The `--all` flag enables batch export of all releases in a single invocation.
 
