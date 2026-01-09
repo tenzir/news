@@ -160,8 +160,8 @@ jobs:
             version=$(basename "$release_dir")
             echo "Notifying Discord about new release: ${{ steps.resolve.outputs.dir }} $version"
             # Generate notes with explicit links for Discord
-            tenzir-changelog --root "${{ steps.resolve.outputs.dir }}/changelog" \
-              release notes --explicit-links "$version" > /tmp/notes.md
+            tenzir-ship --root "${{ steps.resolve.outputs.dir }}/changelog" \
+              show "$version" --release --markdown --explicit-links > /tmp/notes.md
             python .github/scripts/discord-notify.py release "${{ steps.resolve.outputs.dir }}" "$version" /tmp/notes.md "$DISCORD_RELEASE_WEBHOOK" || true
             sleep 1  # Rate limiting
           done < /tmp/new-releases.txt

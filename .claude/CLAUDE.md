@@ -8,13 +8,13 @@ This repository does **not** have its own changelog. Do not create changelog
 entries here when committing changes.
 
 The top-level directories are synced changelog projects from other repositories.
-In particular, `changelog/` is **not** this project's changelog—it contains
-entries synced from the `tenzir/changelog` repository (the changelog tool
+In particular, `ship/` is **not** this project's changelog—it contains
+entries synced from the `tenzir/ship` repository (the ship tool
 itself). Other directories like `tenzir/` and `docs/` follow the same pattern.
 
 ## Repository Structure
 
-Each top-level directory is a [tenzir/changelog](https://github.com/tenzir/changelog)
+Each top-level directory is a [tenzir/ship](https://github.com/tenzir/ship)
 project, synced from a source repository:
 
 ```

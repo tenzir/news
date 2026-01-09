@@ -1,4 +1,4 @@
 click
 discord-webhook
 pyyaml
-tenzir-changelog
+tenzir-ship

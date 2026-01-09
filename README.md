@@ -2,7 +2,7 @@
 
 This repository aggregates changelog entries from Tenzir repositories. Each
 directory corresponds to a project and follows the
-[tenzir/changelog](https://github.com/tenzir/changelog) format.
+[tenzir/ship](https://github.com/tenzir/ship) format.
 
 ---
 
