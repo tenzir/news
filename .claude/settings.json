@@ -8,9 +8,6 @@
     }
   },
   "enabledPlugins": {
-    "formatter@tenzir": true,
-    "git@tenzir": true,
-    "prose@tenzir": true,
-    "ship@tenzir": true
+    "dev@tenzir": true
   }
 }
