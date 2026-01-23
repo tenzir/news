@@ -108,6 +108,10 @@ jobs:
             done
           done
 
+      - name: Clean orphaned extra paths
+        if: inputs.extra_paths != ''
+        run: .github/scripts/clean-orphaned-paths.sh "${{ steps.resolve.outputs.dir }}" ${{ inputs.extra_paths }}
+
       - name: Stage changes
         run: git add .
 
