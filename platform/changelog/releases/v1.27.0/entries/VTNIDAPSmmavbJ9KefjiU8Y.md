@@ -2,6 +2,7 @@
 title: "Add security headers and CSP for standalone deployment"
 type: feature
 author: lava
+created: 2026-01-22T17:15:31Z
 ---
 
 The platform frontend now supports configurable response headers and Content Security Policy (CSP) for standalone deployments.
