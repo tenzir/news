@@ -57,32 +57,20 @@ DEFAULT_TYPE = ("📝", "Update", 0x58ACFF)
 
 
 def parse_entry(file_path: Path) -> dict:
-    """Parse a changelog entry file with YAML frontmatter."""
-    content = file_path.read_text()
+    """Parse a changelog entry using tenzir-ship.
 
-    # Split frontmatter and body
-    parts = content.split("---", 2)
-    if len(parts) < 3:
-        return {"title": file_path.stem, "type": "change", "body": content}
+    Uses tenzir-ship's Python API to get properly normalized entry data,
+    avoiding YAML parsing ambiguities (e.g., `authors: name` vs `authors: [name]`).
+    """
+    from tenzir_ship.entries import read_entry
 
-    frontmatter = yaml.safe_load(parts[1]) or {}
-    body = parts[2].strip()
-
-    # Normalize singular/plural fields
-    authors = frontmatter.get("authors") or []
-    if not authors and "author" in frontmatter:
-        authors = [frontmatter["author"]]
-
-    prs = frontmatter.get("prs") or []
-    if not prs and "pr" in frontmatter:
-        prs = [frontmatter["pr"]]
-
+    entry = read_entry(file_path)
     return {
-        "title": frontmatter.get("title", file_path.stem),
-        "type": frontmatter.get("type", "change"),
-        "authors": authors,
-        "prs": prs,
-        "body": body,
+        "title": entry.title,
+        "type": entry.type,
+        "authors": entry.metadata.get("authors", []),
+        "prs": entry.metadata.get("prs", []),
+        "body": entry.body,
     }
 
 
@@ -136,7 +124,7 @@ def entry(project: str, file: Path, webhook_url: str):
     # Build description
     description = truncate(data["body"], 3800)
 
-    # Add metadata
+    # Add metadata (authors and prs are simple lists after tenzir-ship normalization)
     meta_parts = []
     if data["authors"]:
         authors_str = ", ".join(
