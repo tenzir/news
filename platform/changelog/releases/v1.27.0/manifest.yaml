@@ -1,0 +1,9 @@
+created: 2026-01-26
+title: Tenzir Platform v1.27.0
+intro: >-
+  This release improves the pipeline detail view with faster loading and a convenient
+  close button for quick navigation. Error messages are now cleaner with collapsible
+  technical details, and we fixed issues where the UI could hang or become unresponsive.
+  This release also includes security hardening for standalone deployments, including
+  server-side token storage, configurable security headers, and Content Security Policy
+  support.
