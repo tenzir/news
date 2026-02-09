@@ -1,0 +1,7 @@
+created: 2026-02-09
+title: Tenzir Platform v1.28.0
+intro: >-
+  This release unifies the library's Available and Installed tabs into a single view,
+  making package management more streamlined. It also adds pipeline activity sorting,
+  series isolation in activity charts, a line wrap toggle in the Inspector, platform
+  version display, and a backslash escaping fix.
