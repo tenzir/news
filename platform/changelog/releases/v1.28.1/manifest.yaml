@@ -1,0 +1,4 @@
+created: 2026-02-10
+title: Tenzir Platform v1.28.1
+intro: >-
+  This release upgrades pnpm to 9.15.0 in the frontend Docker image to address CVE-2024-53866.
