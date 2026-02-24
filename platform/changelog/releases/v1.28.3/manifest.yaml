@@ -1,0 +1,6 @@
+created: 2026-02-24
+title: Tenzir Platform v1.28.3
+intro: >-
+  This release improves the clarity and usability of Explorer charts with better legends,
+  tooltips, and an expanded color palette. It also fixes several UI bugs including
+  unresponsive pipeline lists and stale workspace cleanup.
