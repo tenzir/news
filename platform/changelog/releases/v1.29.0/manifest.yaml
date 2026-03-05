@@ -1,0 +1,7 @@
+created: 2026-03-05
+title: Tenzir Platform v1.29.0
+intro: >-
+  With this release, the Tenzir Platform preserves deep links through the login flow,
+  so users are redirected to their original destination after signing in. It also
+  includes several bug fixes and a performance improvement for loading across the
+  platform.
