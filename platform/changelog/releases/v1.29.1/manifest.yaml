@@ -1,0 +1,5 @@
+created: 2026-03-10
+title: Tenzir Platform v1.29.1
+intro: >-
+  This release fixes an issue where ephemeral nodes were causing the frontend to display
+  a 500 error message or be displayed with incorrect connection status.
