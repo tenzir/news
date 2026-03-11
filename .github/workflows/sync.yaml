@@ -44,22 +44,25 @@ jobs:
       DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
       DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
       - name: Generate app token
         id: app-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ vars.TENZIR_GITHUB_APP_ID }}
-          private-key: ${{ secrets.TENZIR_GITHUB_APP_PRIVATE_KEY }}
-          owner: tenzir
+        env:
+          APP_ID: ${{ vars.TENZIR_GITHUB_APP_ID }}
+          PRIVATE_KEY: ${{ secrets.TENZIR_GITHUB_APP_PRIVATE_KEY }}
+          TARGET_OWNER: tenzir
+        run: |
+          ./.github/scripts/create-app-token.sh \
+            --app-id "$APP_ID" \
+            --owner "$TARGET_OWNER"
 
       - name: Resolve target directory
         id: resolve
         run: |
           target="${{ inputs.target }}"
           echo "dir=${target:-${{ inputs.project }}}" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
       - name: Validate project name
         env:
@@ -76,7 +79,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git clone --depth 1 \
-            https://x-access-token:${GH_TOKEN}@github.com/tenzir/${{ inputs.project }}.git \
+            "https://x-access-token:${GH_TOKEN}@github.com/tenzir/${{ inputs.project }}.git" \
             /tmp/source
           echo "sha=$(git -C /tmp/source rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
@@ -99,7 +102,11 @@ jobs:
         if: inputs.extra_paths != ''
         run: |
           cd /tmp/source
-          for pattern in ${{ inputs.extra_paths }}; do
+          EXTRA_PATHS='${{ inputs.extra_paths }}'
+          # shellcheck disable=SC2206 # Intentional splitting of a space-separated input.
+          patterns=($EXTRA_PATHS)
+          for pattern in "${patterns[@]}"; do
+            # shellcheck disable=SC2086 # Intentional glob expansion from configured patterns.
             for path in $pattern; do
               if [[ -d "$path" ]]; then
                 mkdir -p "$GITHUB_WORKSPACE/${{ steps.resolve.outputs.dir }}/$path"
@@ -110,7 +117,11 @@ jobs:
 
       - name: Clean orphaned extra paths
         if: inputs.extra_paths != ''
-        run: .github/scripts/clean-orphaned-paths.sh "${{ steps.resolve.outputs.dir }}" ${{ inputs.extra_paths }}
+        run: |
+          EXTRA_PATHS='${{ inputs.extra_paths }}'
+          # shellcheck disable=SC2206 # Intentional splitting of a space-separated input.
+          paths=($EXTRA_PATHS)
+          .github/scripts/clean-orphaned-paths.sh "${{ steps.resolve.outputs.dir }}" "${paths[@]}"
 
       - name: Stage changes
         run: git add .
@@ -127,7 +138,7 @@ jobs:
 
       - name: Set up Python
         if: env.DISCORD_CHANGELOG_WEBHOOK != '' || env.DISCORD_RELEASE_WEBHOOK != ''
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
