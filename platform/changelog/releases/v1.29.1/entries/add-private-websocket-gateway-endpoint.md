@@ -1,7 +1,7 @@
 ---
 title: "Add PRIVATE_WEBSOCKET_GATEWAY_ENDPOINT environment variable"
 type: feature
-author: benno
+authors: [lava]
 created: 2026-03-10T14:00:00Z
 ---
 

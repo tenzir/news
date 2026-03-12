@@ -1,7 +1,7 @@
 ---
 title: "Fix ephemeral nodes not showing correctly in the UI"
 type: bugfix
-author: benno
+authors: [lava]
 created: 2026-03-10T14:00:00Z
 ---
 
