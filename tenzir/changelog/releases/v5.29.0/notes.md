@@ -1,3 +1,5 @@
+This release improves log ingestion by extracting structured data from legacy syslog messages and aligning the bundled schema with Suricata 8. It also republishes the previous release after an error in the earlier release process.
+
 ## 🚀 Features
 
 ### Extract structured data from legacy syslog content
