@@ -1,0 +1,8 @@
+created: 2026-04-02
+title: Tenzir Platform v1.30.1
+intro: >-
+  This release fixes an issue that prevented users from accessing the public Tenzir
+  Platform instance at app.tenzir.com.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.30.0
