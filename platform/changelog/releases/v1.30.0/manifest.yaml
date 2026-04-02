@@ -1,0 +1,10 @@
+created: 2026-04-02
+title: Tenzir Platform v1.30.0
+intro: >-
+  This release introduces a new Stream view in the Explorer that displays pipeline
+  results as a continuous, expandable event list. It also adds a time range selector,
+  sortable table columns, and copyable inspector values, alongside several bug fixes
+  for package management and the library view.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.29.2
