@@ -1,0 +1,10 @@
+created: 2026-04-09
+title: Tenzir Platform v1.30.2
+intro: >-
+  This release fixes an issue where the pipeline table stayed filtered after navigating
+  away from a pipeline's detail page. It adds thousands separators to numeric values
+  in the Insights tab for better readability. It also updates dependencies to address
+  security issues.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.30.1
