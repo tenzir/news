@@ -3,7 +3,7 @@ title: Workspace management improvements
 type: feature
 authors:
   - lava
-  - realllydan
+  - gitryder
 created: 2026-04-21T11:01:34.378523Z
 ---
 

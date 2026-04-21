@@ -3,7 +3,7 @@ title: Organizations
 type: feature
 authors:
   - lava
-  - realllydan
+  - gitryder
 created: 2026-04-21T10:59:58.351436Z
 ---
 
