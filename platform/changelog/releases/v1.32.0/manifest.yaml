@@ -1,0 +1,10 @@
+created: 2026-05-07
+title: Tenzir Platform v1.32.0
+intro: >-
+  This release adds a timeline to the Stream view that visualizes event volume over
+  time, segmented by schema, with automatic timestamp detection. The Explorer's table
+  view also gains keyboard navigation between entries and a streamlined Fields popover
+  for quicker field selection.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.31.0
