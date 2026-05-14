@@ -1,0 +1,10 @@
+created: 2026-05-14
+title: Tenzir Platform v1.32.2
+intro: >-
+  This release upgrades frontend, backend, and CLI dependencies, along with the tenzir-seaweed
+  base image, to address known vulnerabilities reported by our container scanner.
+  It also fixes two chart issues: tooltips no longer get clipped in small dashboard
+  cells, and charts no longer zoom unexpectedly on click.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.32.1
