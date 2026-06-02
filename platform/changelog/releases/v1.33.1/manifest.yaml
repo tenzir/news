@@ -1,0 +1,9 @@
+created: 2026-06-02
+title: Tenzir Platform v1.33.1
+intro: >-
+  This release fixes a regression where users authenticating via the `PRIVATE_JWT_FROM_HEADER`
+  option were redirected to the login page when opening a workspace. Header-based
+  authentication now loads workspaces correctly again.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.33.0
