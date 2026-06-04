@@ -23,3 +23,9 @@ It also probes your data for time fields and shows availability inline, omitting
 We moved field selection in the Explorer's table view into a dedicated popover. The 'Fields' button sits in the toolbar and shows how many fields are currently hidden. Opening it reveals the full field list with the same click-to-toggle and shift+click-to-focus behavior as before.
 
 *By @gitryder.*
+
+### Insights tab now available for every pipeline
+
+The Insights tab in the pipeline detail view is no longer experimental and now appears for every pipeline. It shows you live per-operator CPU usage, events per second, batch ratios, and queue backpressure for the selected pipeline. You can see at a glance which operators are working hardest and where data is piling up, so finding hotspots and tuning pipeline performance becomes easier. Update your node to v6 to see the data.
+
+*By @gitryder.*

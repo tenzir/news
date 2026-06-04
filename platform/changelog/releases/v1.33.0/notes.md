@@ -45,3 +45,9 @@ Duration rendering also picks up a clearer split between display and query forms
 We fixed an issue where the Insights tab became unresponsive and flickered on pipelines with many operators. The table now renders smoothly and stays interactive while showing live metrics.
 
 *By @gitryder.*
+
+### Insights tab for v6 release candidates
+
+The Insights tab now always shows data for the release candidates of Tenzir Node v6, even if no `// neo` comment is present.
+
+*By @jachris.*

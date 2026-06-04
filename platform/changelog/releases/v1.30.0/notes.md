@@ -42,9 +42,21 @@ We fixed a bug where operator description text on the package detail page appear
 
 *By @gitryder.*
 
+### Fix stale token when switching disconnected nodes
+
+We fixed an issue where the connection token shown in the "Connect node" dialog did not update when switching between different disconnected nodes. The token now correctly refreshes for the selected node.
+
+*By @gitryder.*
+
 ### Package installs for packages with user-defined operators
 
 Packages containing user-defined operators can again be installed through the platform. Previously, installing such packages failed because the operator arguments were serialized incorrectly. This only affected installs through the platform UI—command-line package installs were not impacted.
+
+*By @gitryder.*
+
+### Prevent renaming a node to an empty string
+
+We fixed an issue where a node could be renamed to an empty string, causing the app to malfunction. Node names are now properly validated, so empty or whitespace-only names are no longer allowed.
 
 *By @gitryder.*
 
