@@ -1,4 +1,0 @@
-created: 2025-11-28
-title: "Operator Fixups"
-intro: >-
-  This is a bugfix release that fixes timestamp handling in the python operator and the backpressure handling in publish and subscribe.

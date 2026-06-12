@@ -1,4 +1,0 @@
-created: 2025-06-03
-title: "Talking HTTP"
-intro: >-
-  This release brings forth improvements to HTTP support in Tenzir, supporting requests as transformations and paginating APIs.

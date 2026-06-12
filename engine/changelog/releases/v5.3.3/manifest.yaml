@@ -1,4 +1,0 @@
-created: 2025-06-06
-title: "HTTP fixes"
-intro: >-
-  The from_http and http operators now support response sizes upto 2GiB
