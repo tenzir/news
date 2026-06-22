@@ -1,0 +1,11 @@
+created: 2026-06-22
+title: Tenzir Platform v1.34.0
+intro: >-
+  This release introduces OpenTelemetry tracing for the Platform frontend, giving
+  operators end-to-end visibility into the requests its backend handles. It also adds
+  dedicated columns for common fields like timestamps in the Stream view, overhauls
+  login and session handling for better performance, and fixes a range of loading
+  and navigation issues across the app.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.33.1
