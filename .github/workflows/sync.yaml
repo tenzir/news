@@ -178,7 +178,18 @@ jobs:
             sleep 1  # Rate limiting
           done < /tmp/new-releases.txt
 
-      - name: Trigger docs rebuild
+      # The website (tenzir.com/changelog) rebuilds via a Cloudflare Workers
+      # Builds Deploy Hook. The secret holds the full hook URL; when it is not
+      # configured, the step skips quietly.
+      - name: Trigger website rebuild
+        if: always()
+        continue-on-error: true
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: gh workflow run docs.yaml --repo tenzir/docs
+          WEBSITE_DEPLOY_HOOK: ${{ secrets.WEBSITE_DEPLOY_HOOK }}
+        run: |
+          if [[ -z "$WEBSITE_DEPLOY_HOOK" ]]; then
+            echo "::notice::WEBSITE_DEPLOY_HOOK not configured; skipping"
+            exit 0
+          fi
+          curl -fsS -X POST "$WEBSITE_DEPLOY_HOOK" \
+            || echo "::warning::website deploy hook POST failed"
