@@ -178,11 +178,6 @@ jobs:
             sleep 1  # Rate limiting
           done < /tmp/new-releases.txt
 
-      - name: Trigger docs rebuild
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: gh workflow run docs.yaml --repo tenzir/docs
-
       # The website (tenzir.com/changelog) rebuilds via a Cloudflare Workers
       # Builds Deploy Hook. The secret holds the full hook URL; when it is not
       # configured, the step skips quietly.
