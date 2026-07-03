@@ -41,7 +41,7 @@ Document the latest changes @dev:docs-updater
 ```
 
 The subagent writes docs, reviews them, runs linting, and creates a PR against
-`tenzir/docs`--all without further input.
+`tenzir/content` without further input.
 
 ### Creating changelog entries
 
@@ -115,8 +115,8 @@ related comments, making fixes, and replying with commit SHAs.
 
 ### Documentation repository
 
-The plugin clones `github.com/tenzir/docs` to `.docs/` in your project root if
-it doesn't exist yet.
+The plugin clones `github.com/tenzir/content` to `.docs/` in your project root
+if it doesn't exist yet.
 
 A sync hook keeps `.docs/` up-to-date when editing documentation files. It
 fetches updates at most once per day and blocks on merge conflicts so Claude can
