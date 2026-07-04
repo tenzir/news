@@ -132,3 +132,10 @@ during sync. They include the entry title, description, type, and author.
 
 **Release notifications** are sent when a new release appears (detected by a new
 `notes.md` file in a `releases/` directory). They include the full release notes.
+
+### 🌐 Website Rebuilds
+
+Every push to `main` dispatches a `news-updated` event to `tenzir/content` via
+`.github/workflows/rebuild-content.yaml`. The content repository receives that
+event and triggers the Cloudflare Workers Builds deploy hook so
+`tenzir.com/changelog` picks up new entries and releases.

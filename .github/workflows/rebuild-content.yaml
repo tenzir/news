@@ -1,0 +1,50 @@
+name: Rebuild Content
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rebuild-content-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dispatch:
+    name: Dispatch tenzir/content rebuild
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.TENZIR_GITHUB_APP_ID }}
+          private-key: ${{ secrets.TENZIR_GITHUB_APP_PRIVATE_KEY }}
+          owner: tenzir
+          repositories: content
+          permission-contents: write
+
+      - name: Dispatch rebuild
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_REF: ${{ github.ref_name }}
+          SOURCE_SHA: ${{ github.sha }}
+          SOURCE_RUN_ID: ${{ github.run_id }}
+        run: |
+          gh api repos/tenzir/content/dispatches \
+            --method POST \
+            --input - <<EOF
+          {
+            "event_type": "news-updated",
+            "client_payload": {
+              "repository": "${SOURCE_REPOSITORY}",
+              "ref": "${SOURCE_REF}",
+              "sha": "${SOURCE_SHA}",
+              "run_id": "${SOURCE_RUN_ID}"
+            }
+          }
+          EOF
