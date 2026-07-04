@@ -1,5 +1,5 @@
 created: 2026-06-22
-title: Tenzir Platform v1.34.0
+title: OpenTelemetry tracing and Stream columns
 intro: >-
   This release introduces OpenTelemetry tracing for the Platform frontend, giving
   operators end-to-end visibility into the requests its backend handles. It also adds

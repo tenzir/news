@@ -1,5 +1,5 @@
 created: 2024-07-10
-title: "Tenzir Platform v0.18.2"
+title: Memory leak and CLI fixes
 intro: >-
   This bugfix release:
   * Improves the fix for the memory leak on the overview page

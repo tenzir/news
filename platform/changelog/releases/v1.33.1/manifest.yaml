@@ -1,5 +1,5 @@
 created: 2026-06-02
-title: Tenzir Platform v1.33.1
+title: Header-based authentication fix
 intro: >-
   This release fixes a regression where users authenticating via the `PRIVATE_JWT_FROM_HEADER`
   option were redirected to the login page when opening a workspace. Header-based

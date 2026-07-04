@@ -1,5 +1,5 @@
 created: 2026-02-09
-title: Tenzir Platform v1.28.0
+title: Unified library and Explorer improvements
 intro: >-
   This release unifies the library's Available and Installed tabs into a single view,
   making package management more streamlined. It also adds pipeline activity sorting,

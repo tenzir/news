@@ -1,5 +1,5 @@
 created: 2026-05-07
-title: Tenzir Platform v1.32.0
+title: Stream timeline and table navigation
 intro: >-
   This release adds a timeline to the Stream view that visualizes event volume over
   time, segmented by schema, with automatic timestamp detection. The Explorer's table

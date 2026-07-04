@@ -1,5 +1,5 @@
 created: 2024-07-16
-title: "Tenzir Platform v0.19"
+title: Pipeline filters and activity view
 intro: >-
   * This release moves pipeline filters into the pipeline table's header,
     preparing for further upcoming changes to the table

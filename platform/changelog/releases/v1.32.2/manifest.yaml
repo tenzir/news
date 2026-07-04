@@ -1,5 +1,5 @@
 created: 2026-05-14
-title: Tenzir Platform v1.32.2
+title: Security updates and chart fixes
 intro: >-
   This release upgrades frontend, backend, and CLI dependencies, along with the tenzir-seaweed
   base image, to address known vulnerabilities reported by our container scanner.

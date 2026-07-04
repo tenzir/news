@@ -1,5 +1,5 @@
 created: 2024-07-08
-title: "Tenzir Platform v0.18.1"
+title: Overview memory leak fix
 intro: >-
   * This release fixes a memory leak in the overview page
   * This release updates the docker compose examples by automatically pinning them to the corresponding platform version

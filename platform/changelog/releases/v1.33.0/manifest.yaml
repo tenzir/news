@@ -1,5 +1,5 @@
 created: 2026-06-01
-title: Tenzir Platform v1.33.0
+title: Stream sorting and Explorer actions
 intro: >-
   This release adds the ability to sort events by time in the Stream view, cycling
   between newest-first, oldest-first, and off. It also fixes the Insights tab freezing

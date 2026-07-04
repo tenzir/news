@@ -1,5 +1,5 @@
 created: 2024-12-06
-title: "Tenzir Platform v1.5"
+title: Node-independent dashboards
 intro: >-
   This release brings a major upgrade to Dashboards making them independent of
   nodes.

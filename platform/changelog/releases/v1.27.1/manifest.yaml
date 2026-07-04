@@ -1,5 +1,5 @@
 created: 2026-02-02
-title: Tenzir Platform v1.27.1
+title: User key refresh fixes
 intro: >-
   This release fixes a bug where users could experience authentication failures due
   to stale user keys in their session. The platform now proactively checks for expired
