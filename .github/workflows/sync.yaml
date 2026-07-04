@@ -177,19 +177,3 @@ jobs:
             python .github/scripts/discord-notify.py release "${{ steps.resolve.outputs.dir }}" "$version" /tmp/notes.md "$DISCORD_RELEASE_WEBHOOK" || true
             sleep 1  # Rate limiting
           done < /tmp/new-releases.txt
-
-      # The website (tenzir.com/changelog) rebuilds via a Cloudflare Workers
-      # Builds Deploy Hook. The secret holds the full hook URL; when it is not
-      # configured, the step skips quietly.
-      - name: Trigger website rebuild
-        if: always()
-        continue-on-error: true
-        env:
-          WEBSITE_DEPLOY_HOOK: ${{ secrets.WEBSITE_DEPLOY_HOOK }}
-        run: |
-          if [[ -z "$WEBSITE_DEPLOY_HOOK" ]]; then
-            echo "::notice::WEBSITE_DEPLOY_HOOK not configured; skipping"
-            exit 0
-          fi
-          curl -fsS -X POST "$WEBSITE_DEPLOY_HOOK" \
-            || echo "::warning::website deploy hook POST failed"
