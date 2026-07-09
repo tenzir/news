@@ -1,0 +1,10 @@
+created: 2026-07-09
+title: Inline UDO Expansion in the Explorer
+intro: >-
+  This release introduces inline expansion of User-Defined Operators in the Explorer.
+  Every UDO call in a pipeline can now be expanded in place to reveal its body with
+  full TQL syntax highlighting, including nested UDO calls. It also fixes sporadic
+  502 errors that could occur when running the platform behind a load balancer.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.35.0
