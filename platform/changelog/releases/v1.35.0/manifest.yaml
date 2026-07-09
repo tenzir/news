@@ -1,0 +1,9 @@
+created: 2026-07-09
+title: Multi-Factor Authentication
+intro: >-
+  This release introduces optional multi-factor authentication support for the public
+  Tenzir Platform. It also improves the performance of the pipeline Diagnostics tab
+  and fixes several issues across the app.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.34.0
