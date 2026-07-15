@@ -24,7 +24,7 @@ on:
         default: ""
         type: string
       skip_notifications:
-        description: "Skip Discord notifications (for initial imports)"
+        description: "Skip notifications (for initial imports)"
         required: false
         default: false
         type: boolean
@@ -126,7 +126,8 @@ jobs:
       - name: Commit changes
         uses: planetscale/ghcommit-action@v0.2.0
         with:
-          commit_message: "Sync changelog from tenzir/${{ inputs.project }}@${{ steps.clone.outputs.sha }}"
+          commit_message: >-
+            Sync changelog from tenzir/${{ inputs.project }}@${{ steps.clone.outputs.sha }}${{ inputs.skip_notifications && ' [skip notifications]' || '' }}
           repo: ${{ github.repository }}
           branch: ${{ github.ref_name }}
           empty: false
