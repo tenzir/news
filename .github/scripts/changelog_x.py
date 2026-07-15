@@ -18,6 +18,7 @@ from changelog import get_config_for_entry, get_repository, load_entry
 PROJECT_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 COMMIT_PATTERN = re.compile(r"^[0-9a-fA-F]{40}$")
 ZERO_COMMIT = "0" * 40
+MAX_FEATURE_ENTRIES = 25
 
 
 class ThreadPayload(TypedDict):
@@ -167,6 +168,11 @@ def prepare_entries(before: str, after: str, entry: str) -> list[PreparedEntry]:
                 "changelog": payload,
             }
         )
+        if len(prepared) > MAX_FEATURE_ENTRIES:
+            raise ValueError(
+                f"a run cannot draft more than {MAX_FEATURE_ENTRIES} feature entries; "
+                "preview the entries individually with workflow_dispatch"
+            )
     return prepared
 
 

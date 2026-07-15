@@ -146,6 +146,9 @@ The model can only request the typed `publish_x_thread` safe output. A separate
 Python job reparses the entry, binds it to the triggering Git diff, checks the
 weighted X length and thread policy, and publishes through OAuth 1.0a. Released
 entries, nested changelogs, and `changes/` directories aren't supported.
+Each run processes at most 25 feature entries. If a sync exceeds that limit,
+the workflow fails before inference, and you can preview each entry with the
+manual dispatch input.
 
 The workflow is currently in staged mode. It validates proposed posts and shows
 them in the Actions step summary, but it does not call X or create GitHub check

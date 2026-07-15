@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from changelog import load_entry  # noqa: E402
 from changelog_x import (  # noqa: E402
+    MAX_FEATURE_ENTRIES,
     added_entry_paths,
     build_payload,
     payload_hash,
@@ -142,6 +143,21 @@ class ChangelogTest(unittest.TestCase):
         self.assertTrue(entries[0]["has_code_fence"])
         self.assertEqual(entries[0]["content_hash"], payload_hash(feature))
 
+    def test_preparation_rejects_oversized_feature_batches(self) -> None:
+        paths = [
+            Path(f"project/changelog/unreleased/feature-{index}.md")
+            for index in range(MAX_FEATURE_ENTRIES + 1)
+        ]
+        with (
+            patch("changelog_x.selected_entry_paths", return_value=paths),
+            patch("changelog_x.build_payload", return_value=sample_payload()),
+            self.assertRaisesRegex(
+                ValueError,
+                rf"cannot draft more than {MAX_FEATURE_ENTRIES}",
+            ),
+        ):
+            prepare_entries("1" * 40, "2" * 40, "")
+
     def test_context_and_noop_are_machine_readable(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -163,6 +179,17 @@ class ChangelogTest(unittest.TestCase):
         self.assertIn(
             "GH_AW_SAFE_OUTPUTS: ${{ runner.temp }}/gh-aw/safeoutputs/outputs.jsonl",
             workflow,
+        )
+
+    def test_workflow_allows_every_bounded_publish_request(self) -> None:
+        workflows = Path(__file__).parents[1] / "workflows"
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+
+        self.assertIn(f"      max: {MAX_FEATURE_ENTRIES}\n", source)
+        self.assertRegex(
+            lock,
+            rf'"publish-x-thread":\{{[^\n]*"max":{MAX_FEATURE_ENTRIES}',
         )
 
     def test_workflow_selects_gpt_5_6_sol_through_an_exact_alias(self) -> None:
@@ -242,6 +269,39 @@ class XPublicationTest(unittest.TestCase):
                 ],
                 {entry: payload},
             )
+
+    def test_multiple_requests_match_multiple_triggered_entries(self) -> None:
+        first_entry = "project/changelog/unreleased/first.md"
+        second_entry = "project/changelog/unreleased/second.md"
+        first = sample_payload()
+        second = {
+            **sample_payload(),
+            "slug": "second",
+            "prs": [43],
+            "url": "https://github.com/tenzir/example/pull/43",
+        }
+        items = [
+            {
+                "type": "publish_x_thread",
+                "entry": first_entry,
+                "post_1": f"First feature. {first['url']}",
+            },
+            {
+                "type": "publish_x_thread",
+                "entry": second_entry,
+                "post_1": f"Second feature. {second['url']}",
+            },
+        ]
+
+        threads = validate_requests(
+            items,
+            {first_entry: first, second_entry: second},
+        )
+
+        self.assertEqual(
+            [thread.entry for thread in threads],
+            [Path(first_entry), Path(second_entry)],
+        )
 
     def test_loads_only_the_custom_safe_output_type(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

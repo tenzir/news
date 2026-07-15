@@ -78,6 +78,7 @@ safe-outputs:
       description: >-
         Validate and publish one X thread for an entry in the prepared changelog
         context. Call this exactly once for every prepared entry.
+      max: 25
       runs-on: ubuntu-latest
       output: The X thread request was validated and processed.
       permissions:
