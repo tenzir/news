@@ -1,0 +1,10 @@
+created: 2026-07-15
+title: Custom library sources
+intro: >-
+  Organizations can now maintain their own package libraries by adding public or private
+  Git repositories alongside the built-in Tenzir Library. This release also speeds
+  up data loading in the app and adds a Force stop action for pipelines that are slow
+  to drain.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.36.1
