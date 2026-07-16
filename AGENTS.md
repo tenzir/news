@@ -2,58 +2,32 @@
 
 This repository aggregates changelog entries from multiple Tenzir repositories.
 
-## Important: No Local Changelog
+## Important: No local changelog
 
 This repository does **not** have its own changelog. Do not create changelog
 entries here when committing changes.
 
-The top-level directories are synced changelog projects from other repositories.
-In particular, `ship/` is **not** this project's changelog—it contains
-entries synced from the `tenzir/ship` repository (the ship tool
-itself). Other directories like `tenzir/` and `platform/` follow the same pattern.
+The top-level directories are synchronized changelog projects from other
+repositories. In particular, `ship/` is not this project's changelog. It
+contains entries synchronized from the `tenzir/ship` repository.
 
-## Repository Structure
+## Repository structure
 
 Each top-level directory is a [tenzir/ship](https://github.com/tenzir/ship)
-project, synced from a source repository:
+project synchronized from a source repository:
 
-```
+```text
 news/
 ├── tenzir/     # from tenzir/tenzir
 ├── platform/   # from tenzir/platform-internal
 └── ...
 ```
 
-## Changelog Synchronization
+## CI documentation
 
-Source repositories push changelog updates to this repository via GitHub Actions.
-The synchronization uses a pull-based workflow to avoid race conditions.
+Before changing actions, workflows, scripts, credentials, environments, or
+notification behavior, read the [CI maintainer guide](.github/README.md). Treat
+it as the source of truth for CI architecture and operations.
 
-### The Problem
-
-A naive approach where source repos directly push to this repo has a TOCTOU
-(time-of-check-time-of-use) issue: when multiple repos push simultaneously,
-concurrent pulls and pushes can conflict.
-
-### The Solution
-
-The update workflow runs in _this_ repository, triggered by source repos:
-
-1. Source repo triggers `.github/workflows/sync.yaml` via `gh workflow run`
-2. The workflow uses `concurrency: group: "sync"` to serialize all updates
-3. Each update gets exclusive access: clone source, sync files, commit, push
-4. The resulting push to `main` dispatches a rebuild request to `tenzir/content`
-
-### Triggering an Update
-
-Source repositories trigger updates with:
-
-```bash
-gh workflow run sync.yaml \
-  --repo tenzir/news \
-  --field project=<project-name> \
-  --field path=<changelog-path>  # optional, defaults to "changelog"
-```
-
-The `path` parameter allows source repos to specify where their changelog
-directory is located (e.g., `changelog`, `docs/changelog`, etc.).
+Markdown files under `.github/workflows/` can be executable GitHub Agentic
+Workflow sources. Do not move or rename them as documentation files.
