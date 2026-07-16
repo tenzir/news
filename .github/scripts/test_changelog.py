@@ -268,7 +268,7 @@ class ChangelogTest(unittest.TestCase):
         self.assertIn("if: needs.detection.result == 'success'", source_job)
         self.assertIn("needs.detection.result == 'success'", lock_job)
 
-    def test_social_approval_only_gates_publication(self) -> None:
+    def test_social_environment_is_scoped_to_publication(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
         source = (workflows / "changelog-x.md").read_text()
         lock = (workflows / "changelog-x.lock.yml").read_text()

@@ -208,8 +208,8 @@ exact drafted posts, and blocks another write after an ambiguous outcome.
 
 To recover an ambiguous write, inspect `@tenzir_company`. Delete the post if X
 created it, then manually dispatch the same entry with **Retry after confirming
-and removing any ambiguous X post** enabled. The protected environment
-approval provides a second check before publication resumes.
+and removing any ambiguous X post** enabled. The explicit dispatch and retry
+flag provide operator confirmation before publication resumes.
 
 #### Staged mode
 
@@ -219,8 +219,9 @@ The production workflow has staged mode disabled.
 
 Only the `publish_x` job uses the `social-production` environment. It runs
 after the secret-free safe-output validator, restricts publication to `main`,
-and requires approval without delaying preprocessing or no-op runs. Store these
-secrets in that environment:
+and exposes the X credentials only to the publication job. The environment has
+no required reviewers or wait timer, so validated feature entries publish
+without human intervention. Store these secrets in that environment:
 
 | Secret | Purpose |
 | --- | --- |
@@ -278,10 +279,12 @@ remain in place:
 2. Keep GPT-5.6 Sol enabled in the Tenzir organization's Copilot model policy.
 3. Confirm that all four X secrets exist in `social-production` and represent
    `@tenzir_company` with read-and-write access.
-4. Maintain enough X API credits and an appropriate spending limit.
-5. Keep `safe-outputs.staged` and `GH_AW_SAFE_OUTPUTS_STAGED` set to `false` in
+4. Keep `social-production` restricted to `main` without required reviewers or
+   a wait timer.
+5. Maintain enough X API credits and an appropriate spending limit.
+6. Keep `safe-outputs.staged` and `GH_AW_SAFE_OUTPUTS_STAGED` set to `false` in
    `workflows/changelog-x.md`.
-6. After the first successful post, retire the fallback Worker and close
+7. After the first successful post, retire the fallback Worker and close
    `tenzir/infra#307`.
 
 ## Website rebuilds
