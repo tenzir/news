@@ -181,9 +181,9 @@ fails before inference when a batch exceeds that limit. It serializes up to
 push's commit range.
 
 The model has no credentials or write permissions. It can only request a typed
-`publish_x_thread` safe output. A separate Python job reparses each entry,
-binds it to the triggering Git diff, and validates the following properties
-before any write:
+`publish_x_thread` safe output. After gh-aw accepts the typed request, the
+main-only Python publisher reparses each entry, binds it to the triggering Git
+diff, and validates the following properties before any write:
 
 - The requested entry and content hash match the triggering diff.
 - Every post fits X's weighted-character limit.
@@ -192,8 +192,8 @@ before any write:
 - The thread shape matches the changelog content.
 
 AI threat detection is disabled for this workflow. The drafting agent is
-credentialless and read-only, while the separate publisher accepts only the
-typed output after deterministic validation. A second model pass would add AI
+credentialless and read-only, while the publisher validates every typed request
+before it constructs authenticated clients. A second model pass would add AI
 usage and latency without guarding the X credentials or write operation.
 
 Each post links to the project's changelog on `tenzir.com`, not to its
@@ -223,10 +223,10 @@ in the Actions step summary without creating an X post or a GitHub check run.
 The production workflow has staged mode disabled.
 
 Only the `publish_x` job uses the `social-production` environment. It runs
-after the secret-free safe-output validator, restricts publication to `main`,
-and exposes the X credentials only to the publication job. The environment has
-no required reviewers or wait timer, so validated feature entries publish
-without human intervention. Store these secrets in that environment:
+after the secret-free typed-output gate, restricts publication to `main`, and
+validates and publishes in one execution. The environment has no required
+reviewers or wait timer, so validated feature entries publish without human
+intervention. Store these secrets in that environment:
 
 | Secret | Purpose |
 | --- | --- |

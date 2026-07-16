@@ -603,9 +603,6 @@ def main() -> None:
         os.environ.get("ENTRY", ""),
     )
     threads = validate_requests(load_safe_output_items(Path(output_file)), expected)
-    if os.environ.get("X_PUBLICATION_VALIDATE_ONLY") == "true":
-        print(f"Validated {len(threads)} X thread(s)")
-        return
     if os.environ.get("GH_AW_SAFE_OUTPUTS_STAGED") == "true":
         summary = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
         if not summary:

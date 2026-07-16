@@ -283,7 +283,28 @@ class ChangelogTest(unittest.TestCase):
         self.assertIn("environment: social-production", lock_publish)
         self.assertEqual(source.count("environment: social-production"), 1)
         self.assertEqual(lock.count("environment: social-production"), 1)
-        self.assertIn('X_PUBLICATION_VALIDATE_ONLY: "true"', source)
+        for secret in (
+            "X_API_KEY",
+            "X_API_SECRET",
+            "X_ACCESS_TOKEN",
+            "X_ACCESS_TOKEN_SECRET",
+        ):
+            with self.subTest(secret=secret):
+                reference = rf"secrets\.{secret}(?![A-Z0-9_])"
+                self.assertRegex(source_publish, reference)
+                self.assertRegex(lock_publish, reference)
+                self.assertEqual(len(re.findall(reference, source)), 1)
+                self.assertEqual(len(re.findall(reference, lock)), 1)
+
+    def test_publication_validation_runs_once(self) -> None:
+        workflows = Path(__file__).parents[1] / "workflows"
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+
+        self.assertEqual(source.count("python .github/scripts/x_publish.py"), 1)
+        self.assertEqual(lock.count("python .github/scripts/x_publish.py"), 1)
+        self.assertNotIn("X_PUBLICATION_VALIDATE_ONLY", source)
+        self.assertNotIn("X_PUBLICATION_VALIDATE_ONLY", lock)
 
     def test_production_publication_is_main_only(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
@@ -348,19 +369,19 @@ class ChangelogTest(unittest.TestCase):
         lock = (workflows / "changelog-x.lock.yml").read_text()
 
         self.assertIn(
-            "  publish_x:\n    name: Preview or publish X thread",
+            "  publish_x:\n    name: Validate and publish X thread",
             source,
         )
         self.assertIn(
-            "    publish-x-thread:\n      name: Validate X thread",
+            "    publish-x-thread:\n      name: Accept X thread request",
             source,
         )
         self.assertIn(
-            "  publish_x:\n    name: Preview or publish X thread",
+            "  publish_x:\n    name: Validate and publish X thread",
             lock,
         )
         self.assertIn(
-            "  publish_x_thread:\n    name: Validate X thread",
+            "  publish_x_thread:\n    name: Accept X thread request",
             lock,
         )
 
@@ -397,23 +418,24 @@ class ChangelogTest(unittest.TestCase):
 
 
 class XPublicationTest(unittest.TestCase):
-    def test_validation_phase_cannot_preview_or_publish(self) -> None:
+    def test_invalid_request_never_reaches_publisher(self) -> None:
         with (
             patch.dict(
                 os.environ,
-                {
-                    "GH_AW_AGENT_OUTPUT": "/tmp/agent-output.json",
-                    "X_PUBLICATION_VALIDATE_ONLY": "true",
-                },
+                {"GH_AW_AGENT_OUTPUT": "/tmp/agent-output.json"},
                 clear=True,
             ),
             patch("x_publish.expected_payloads", return_value={}),
             patch("x_publish.load_safe_output_items", return_value=[]),
-            patch("x_publish.validate_requests", return_value=[Mock()]),
+            patch(
+                "x_publish.validate_requests",
+                side_effect=ValueError("invalid request"),
+            ),
             patch("x_publish.render_staged_preview") as preview,
             patch("x_publish.publish_live") as publish,
         ):
-            publish_main()
+            with self.assertRaisesRegex(ValueError, "invalid request"):
+                publish_main()
 
         preview.assert_not_called()
         publish.assert_not_called()
