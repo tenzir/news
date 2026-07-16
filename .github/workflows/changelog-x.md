@@ -36,7 +36,9 @@ engine:
 imports:
   - shared/gpt-5.6-sol.md
 
-network: {}
+network:
+  allowed:
+    - tenzir.com
 
 tools:
   bash: ["cat"]

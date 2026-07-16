@@ -196,6 +196,8 @@ request. The URL uses the canonical project ID from `changelog/config.yaml`
 and the entry slug. For example, the `skills/` entry named
 `automatic-merging-for-companion-documentation-prs.md` becomes
 `https://tenzir.com/changelog/tenzir-skills/unreleased/#automatic-merging-for-companion-documentation-prs`.
+The workflow explicitly allows `tenzir.com` so gh-aw's safe-output sanitizer
+preserves that URL. The drafting agent has no general web tool.
 
 Live publication uses OAuth 1.0a and retries only connection-establishment
 timeouts and explicit rate limits, which are known not to have created a post.

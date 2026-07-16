@@ -377,6 +377,16 @@ class ChangelogTest(unittest.TestCase):
         self.assertNotIn("sudo -E awf", lock)
         self.assertNotIn("--enable-host-access", lock)
 
+    def test_workflow_allows_the_public_changelog_url(self) -> None:
+        workflows = Path(__file__).parents[1] / "workflows"
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+        network = source.split("\nnetwork:\n", 1)[1].split("\n\n", 1)[0]
+
+        self.assertEqual(network, "  allowed:\n    - tenzir.com")
+        self.assertIn("GH_AW_INFO_ALLOWED_DOMAINS: '[\"tenzir.com\"]'", lock)
+        self.assertIn("telemetry.enterprise.githubcopilot.com,tenzir.com", lock)
+
     def test_workflow_enables_live_publication_consistently(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
         source = (workflows / "changelog-x.md").read_text()
