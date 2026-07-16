@@ -5,44 +5,9 @@ import re
 from pathlib import Path
 
 import click
-import yaml
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
-
-def get_config_for_entry(entry_path: Path) -> dict:
-    """Get config from config.yaml relative to an entry file.
-
-    Entries can be in:
-    - <project>/changelog/unreleased/<entry>.md
-    - <project>/changelog/releases/<version>/entries/<entry>.md
-    - <project>/<subdir>/changelog/unreleased/<entry>.md (nested)
-
-    In all cases, we find config.yaml in the changelog root (parent of unreleased/
-    or releases/).
-    """
-    # Walk up to find the changelog root (contains config.yaml, unreleased/, releases/)
-    current = entry_path.parent
-    while current != current.parent:
-        config_path = current / "config.yaml"
-        if config_path.exists():
-            return yaml.safe_load(config_path.read_text()) or {}
-        current = current.parent
-    return {}
-
-
-def get_config(project: str) -> dict:
-    """Get config from top-level config.yaml for a project."""
-    config_path = Path(project) / "changelog" / "config.yaml"
-    if config_path.exists():
-        return yaml.safe_load(config_path.read_text()) or {}
-    return {}
-
-
-def get_repository(project: str, config: dict | None = None) -> str:
-    """Get repository from config, falling back to tenzir/{project}."""
-    if config is None:
-        config = get_config(project)
-    return config.get("repository", f"tenzir/{project}")
+from changelog import get_config_for_entry, get_repository, load_entry
 
 
 # Type configuration: emoji, label, and embed color
@@ -54,24 +19,6 @@ TYPE_CONFIG = {
     "fix": ("🐞", "Bug Fix", 0x2ECC71),
 }
 DEFAULT_TYPE = ("📝", "Update", 0x58ACFF)
-
-
-def parse_entry(file_path: Path) -> dict:
-    """Parse a changelog entry using tenzir-ship.
-
-    Uses tenzir-ship's Python API to get properly normalized entry data,
-    avoiding YAML parsing ambiguities (e.g., `authors: name` vs `authors: [name]`).
-    """
-    from tenzir_ship.entries import read_entry
-
-    entry = read_entry(file_path)
-    return {
-        "title": entry.title,
-        "type": entry.type,
-        "authors": entry.metadata.get("authors", []),
-        "prs": entry.metadata.get("prs", []),
-        "body": entry.body,
-    }
 
 
 def strip_leading_heading(text: str) -> str:
@@ -111,7 +58,7 @@ def entry(project: str, file: Path, webhook_url: str):
     """Send a notification for a changelog entry."""
     config = get_config_for_entry(file)
     repo = get_repository(project, config)
-    data = parse_entry(file)
+    data = load_entry(file)
 
     emoji, label, color = TYPE_CONFIG.get(data["type"], DEFAULT_TYPE)
 
