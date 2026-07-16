@@ -4,15 +4,15 @@ This document is the maintainer guide for GitHub Actions, changelog
 synchronization, notifications, and deployment automation in `tenzir/news`.
 
 Markdown files under `workflows/` aren't necessarily documentation. In
-particular, `workflows/changelog-x.md` and
-`workflows/shared/gpt-5.6-sol.md` are executable inputs to GitHub Agentic
-Workflows and must remain at their current paths.
+particular, `workflows/changelog-x.md` is an executable input to GitHub Agentic
+Workflows and must remain at its current path.
 
 ## Workflow map
 
 | Path | Purpose |
 | --- | --- |
 | [`actions/sync/action.yaml`](actions/sync/action.yaml) | Triggers this repository's synchronization workflow from a source repository. |
+| [`aw/actions-lock.json`](aw/actions-lock.json) | Caches immutable action pins for reproducible agentic workflow compilation. |
 | [`workflows/sync.yaml`](workflows/sync.yaml) | Serializes changelog synchronization and sends Discord notifications. |
 | [`workflows/changelog-x.md`](workflows/changelog-x.md) | Defines the editable agentic workflow that drafts and processes X posts. |
 | [`workflows/changelog-x.lock.yml`](workflows/changelog-x.lock.yml) | Contains the generated, executable GitHub Actions workflow. Don't edit it manually. |
@@ -198,8 +198,10 @@ The workflow is currently staged. It runs the model and all validation, then
 renders the proposed thread in the Actions step summary without creating an X
 post or a GitHub check run.
 
-The `social-production` environment restricts publication to `main` and
-requires approval. Store these secrets in that environment:
+Only the `publish_x` job uses the `social-production` environment. It runs
+after the secret-free safe-output validator, restricts publication to `main`,
+and requires approval without delaying preprocessing or no-op runs. Store these
+secrets in that environment:
 
 | Secret | Purpose |
 | --- | --- |
@@ -218,7 +220,7 @@ Run a preview after the workflow exists on `main`:
 4. Enter an existing direct feature path, such as
    `tenzir/changelog/unreleased/SLUG.md`.
 5. Start the workflow.
-6. When the safe-output job pauses, review and approve the
+6. When the publication job pauses, review and approve the
    `social-production` deployment.
 7. In the run summary, inspect **Staged Mode: X Thread Preview**.
 
@@ -229,29 +231,21 @@ entry path fails deterministic validation.
 #### Compile the agentic workflow
 
 Edit `workflows/changelog-x.md`, then regenerate
-`workflows/changelog-x.lock.yml`. The current gh-aw release predates GPT-5.6
-Sol and pins an older Copilot CLI, so use the tested compiler revision until a
-release includes native support:
+`workflows/changelog-x.lock.yml`. Install the exact
+[gh-aw v0.82.10 release](https://github.com/github/gh-aw/releases/tag/v0.82.10)
+used by the lock, then compile it. The compiler uses the immutable action SHAs
+in `aw/actions-lock.json`:
 
 ```sh
-gh_aw_ref=89c05847be8c41c3490e371af3819dc1e1057a81
-golang_image=golang:1.26.3@sha256:\
-2d6c80227255c3112a4d08e67ba98e58efd3846daf15d9d7d4c389565d881b1a
-docker run --rm --user "$(id -u):$(id -g)" \
-  -e HOME=/tmp -e GH_AW_REF="$gh_aw_ref" \
-  -v "$PWD":/work -w /work \
-  "$golang_image" \
-  bash -euc '
-    git clone --filter=blob:none https://github.com/github/gh-aw /tmp/gh-aw
-    git -C /tmp/gh-aw checkout "$GH_AW_REF"
-    (cd /tmp/gh-aw && go build -o /tmp/gh-aw-bin ./cmd/gh-aw)
-    /tmp/gh-aw-bin compile changelog-x --approve --validate \
-      --gh-aw-ref "$GH_AW_REF"
-  '
+gh extension remove aw
+gh extension install github/gh-aw --pin v0.82.10
+gh aw compile changelog-x --approve --validate
 ```
 
-The temporary `workflows/shared/gpt-5.6-sol.md` import pins the exact model.
-Remove it only after the firewall accepts `gpt-5.6-sol` without the import.
+Version 0.82.10 supports GPT-5.6 Sol directly, so the workflow doesn't need a
+custom model alias. It also defaults to strict security: the agent and threat
+detector run without `sudo` or host access. This workflow doesn't depend on
+either capability and must not opt into legacy security.
 
 #### Enable live publication
 
@@ -291,4 +285,4 @@ git diff --check
 ```
 
 When you change `workflows/changelog-x.md`, compile it with the pinned gh-aw
-revision and commit the resulting lock file.
+release and commit the resulting lock file.

@@ -28,9 +28,6 @@ engine:
   model: gpt-5.6-sol
   bare: true
 
-imports:
-  - shared/gpt-5.6-sol.md
-
 network: {}
 
 tools:
@@ -44,18 +41,18 @@ concurrency:
 
 steps:
   - name: Check out repository
-    uses: actions/checkout@v5
+    uses: actions/checkout@v7.0.0
     with:
       fetch-depth: 0
       persist-credentials: false
 
   - name: Set up Python
-    uses: actions/setup-python@v6
+    uses: actions/setup-python@v6.3.0
     with:
       python-version: "3.12"
 
   - name: Install changelog dependencies
-    run: python -m pip install --requirement .github/scripts/requirements.txt
+    run: python -m pip install --requirement=.github/scripts/requirements.txt
 
   - name: Prepare feature entries
     env:
@@ -70,9 +67,54 @@ steps:
       --entry "$ENTRY"
       --output /tmp/gh-aw/agent/changelog-x.json
 
+jobs:
+  publish_x:
+    name: Publish X thread
+    needs: [agent, publish_x_thread]
+    runs-on: ubuntu-latest
+    environment: social-production
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - name: Download agent output
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: agent
+          path: ${{ runner.temp }}/changelog-x
+
+      - name: Check out repository
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Install publication dependencies
+        run: python -m pip install --requirement=.github/scripts/requirements.txt
+
+      - name: Process X thread
+        env:
+          BEFORE: ${{ github.event.before || '' }}
+          AFTER: ${{ github.event.after || github.sha }}
+          ENTRY: ${{ github.event.inputs.entry || '' }}
+          GH_AW_AGENT_OUTPUT: ${{ runner.temp }}/changelog-x/agent_output.json
+          # Keep this in sync with safe-outputs.staged below.
+          GH_AW_SAFE_OUTPUTS_STAGED: "true"
+          GITHUB_TOKEN: ${{ github.token }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+        run: python .github/scripts/x_publish.py
+
 safe-outputs:
   staged: true
-  environment: social-production
+  needs: [publish_x]
   jobs:
     publish-x-thread:
       description: >-
@@ -84,11 +126,8 @@ safe-outputs:
       output: The X thread request was validated and processed.
       permissions:
         contents: read
-        checks: write
       env:
-        # gh-aw does not propagate the global staged flag to custom jobs.
-        # Keep this in sync with safe-outputs.staged above.
-        GH_AW_SAFE_OUTPUTS_STAGED: "true"
+        X_PUBLICATION_VALIDATE_ONLY: "true"
       inputs:
         entry:
           description: Exact repository-relative entry path from the prepared context
@@ -116,29 +155,24 @@ safe-outputs:
           type: string
       steps:
         - name: Check out repository
-          uses: actions/checkout@v5
+          uses: actions/checkout@v7.0.0
           with:
             fetch-depth: 0
             persist-credentials: false
 
         - name: Set up Python
-          uses: actions/setup-python@v6
+          uses: actions/setup-python@v6.3.0
           with:
             python-version: "3.12"
 
         - name: Install publication dependencies
-          run: python -m pip install --requirement .github/scripts/requirements.txt
+          run: python -m pip install --requirement=.github/scripts/requirements.txt
 
-        - name: Validate and process X thread
+        - name: Validate X thread
           env:
             BEFORE: ${{ github.event.before || '' }}
             AFTER: ${{ github.event.after || github.sha }}
             ENTRY: ${{ github.event.inputs.entry || '' }}
-            GITHUB_TOKEN: ${{ github.token }}
-            X_API_KEY: ${{ secrets.X_API_KEY }}
-            X_API_SECRET: ${{ secrets.X_API_SECRET }}
-            X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-            X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
           run: python .github/scripts/x_publish.py
 ---
 

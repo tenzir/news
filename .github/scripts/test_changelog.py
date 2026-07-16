@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -29,6 +30,7 @@ from x_publish import (  # noqa: E402
     CheckLedger,
     ValidatedThread,
     load_safe_output_items,
+    main as publish_main,
     post_one,
     post_thread,
     posts_from_item,
@@ -206,17 +208,81 @@ class ChangelogTest(unittest.TestCase):
         self.assertIn("if: needs.detection.result == 'success'", source_job)
         self.assertIn("needs.detection.result == 'success'", lock_job)
 
-    def test_workflow_selects_gpt_5_6_sol_through_an_exact_alias(self) -> None:
+    def test_social_approval_only_gates_publication(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
-
-        self.assertIn("model: gpt-5.6-sol", (workflows / "changelog-x.md").read_text())
-        self.assertIn(
-            "- copilot/gpt-5.6-sol",
-            (workflows / "shared/gpt-5.6-sol.md").read_text(),
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+        source_publish = source.split("  publish_x:\n", 1)[1].split(
+            "\nsafe-outputs:\n", 1
+        )[0]
+        lock_publish_match = re.search(
+            r"(?ms)^  publish_x:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+            lock,
         )
+        self.assertIsNotNone(lock_publish_match)
+        lock_publish = lock_publish_match.group(1) if lock_publish_match else ""
+
+        self.assertIn("needs: [agent, publish_x_thread]", source_publish)
+        self.assertIn("environment: social-production", source_publish)
+        self.assertIn("environment: social-production", lock_publish)
+        self.assertEqual(source.count("environment: social-production"), 1)
+        self.assertEqual(lock.count("environment: social-production"), 1)
+        self.assertIn('X_PUBLICATION_VALIDATE_ONLY: "true"', source)
+
+    def test_workflow_selects_native_gpt_5_6_sol(self) -> None:
+        workflows = Path(__file__).parents[1] / "workflows"
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+        action_lock = json.loads(
+            (Path(__file__).parents[1] / "aw/actions-lock.json").read_text()
+        )
+
+        self.assertIn("model: gpt-5.6-sol", source)
+        self.assertNotIn("\nimports:", source)
+        self.assertFalse((workflows / "shared/gpt-5.6-sol.md").exists())
+        self.assertIn('"compiler_version":"v0.82.10"', lock)
+        self.assertIn("COPILOT_MODEL: gpt-5.6-sol", lock)
+        self.assertEqual(
+            action_lock["entries"]["github/gh-aw-actions/setup@v0.82.10"],
+            {
+                "repo": "github/gh-aw-actions/setup",
+                "version": "v0.82.10",
+                "sha": "05205436a78512d71a2d842e46586ed05f4fa058",
+            },
+        )
+
+    def test_workflow_keeps_gh_aw_strict_security(self) -> None:
+        lock = (
+            Path(__file__).parents[1] / "workflows/changelog-x.lock.yml"
+        ).read_text()
+
+        self.assertIn('"strict":true', lock)
+        self.assertNotIn("sudo -E awf", lock)
+        self.assertNotIn("--enable-host-access", lock)
 
 
 class XPublicationTest(unittest.TestCase):
+    def test_validation_phase_cannot_preview_or_publish(self) -> None:
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "GH_AW_AGENT_OUTPUT": "/tmp/agent-output.json",
+                    "X_PUBLICATION_VALIDATE_ONLY": "true",
+                },
+                clear=True,
+            ),
+            patch("x_publish.expected_payloads", return_value={}),
+            patch("x_publish.load_safe_output_items", return_value=[]),
+            patch("x_publish.validate_requests", return_value=[Mock()]),
+            patch("x_publish.render_staged_preview") as preview,
+            patch("x_publish.publish_live") as publish,
+        ):
+            publish_main()
+
+        preview.assert_not_called()
+        publish.assert_not_called()
+
     def test_single_post_policy_for_plain_entries(self) -> None:
         payload = sample_payload()
         post = f"A concise feature announcement. {payload['url']}"
