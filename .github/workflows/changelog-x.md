@@ -80,7 +80,7 @@ steps:
 
 jobs:
   publish_x:
-    name: Preview or publish X thread
+    name: Validate and publish X thread
     needs: [agent, publish_x_thread]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -131,17 +131,15 @@ safe-outputs:
   needs: [publish_x]
   jobs:
     publish-x-thread:
-      name: Validate X thread
+      name: Accept X thread request
       description: >-
-        Validate and publish one X thread for an entry in the prepared changelog
-        context. Call this exactly once for every prepared entry.
+        Request publication of one X thread for an entry in the prepared
+        changelog context. Call this exactly once for every prepared entry.
       max: 25
       runs-on: ubuntu-latest
-      output: The X thread request was validated and processed.
+      output: The X thread request was accepted for publication.
       permissions:
         contents: read
-      env:
-        X_PUBLICATION_VALIDATE_ONLY: "true"
       inputs:
         entry:
           description: Exact repository-relative entry path from the prepared context
@@ -168,26 +166,8 @@ safe-outputs:
           required: false
           type: string
       steps:
-        - name: Check out repository
-          uses: actions/checkout@v7.0.0
-          with:
-            fetch-depth: 0
-            persist-credentials: false
-
-        - name: Set up Python
-          uses: actions/setup-python@v6.3.0
-          with:
-            python-version: "3.12"
-
-        - name: Install publication dependencies
-          run: python -m pip install --requirement=.github/scripts/requirements.txt
-
-        - name: Validate X thread
-          env:
-            BEFORE: ${{ github.event.before || '' }}
-            AFTER: ${{ github.event.after || github.sha }}
-            ENTRY: ${{ github.event.inputs.entry || '' }}
-          run: python .github/scripts/x_publish.py
+        - name: Verify typed output artifact
+          run: test -s "$GH_AW_AGENT_OUTPUT"
 ---
 
 # Draft changelog features for X
