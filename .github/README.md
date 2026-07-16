@@ -252,13 +252,14 @@ gh extension install github/gh-aw --pin v0.82.10
 gh aw compile changelog-x --approve --validate
 ```
 
-Version 0.82.10 provides the built-in `gpt-5.6` alias. The AWF proxy resolves
-that alias against the live Copilot model catalog, where the organization model
-policy exposes GPT-5.6 Sol. Keep the alias instead of a concrete 5.6 model name:
-the pinned AWF runtime accepts the alias before its static concrete-model list
-learns about the new model. The compiler also defaults to strict security: the
-agent and threat detector run without `sudo` or host access. This workflow
-doesn't depend on either capability and must not opt into legacy security.
+Version 0.82.10 provides a built-in `gpt-5.6` alias, but that alias can resolve
+to Luna, Sol, or Terra. The workflow therefore imports its own local
+`gpt-5.6-sol` alias from `workflows/shared/gpt-5.6-sol.md`; its only candidate
+is `copilot/gpt-5.6-sol`. Keep that alias: it lets the pinned AWF runtime
+validate an alias while still selecting Sol from the live Copilot model
+catalog. The compiler also defaults to strict security: the agent and threat
+detector run without `sudo` or host access. This workflow doesn't depend on
+either capability and must not opt into legacy security.
 
 #### Enable live publication
 
