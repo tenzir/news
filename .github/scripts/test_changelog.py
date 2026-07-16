@@ -313,7 +313,7 @@ class ChangelogTest(unittest.TestCase):
                 self.assertIn("retry_ambiguous:", workflow)
                 self.assertIn("X_RETRY_AMBIGUOUS:", workflow)
 
-    def test_workflow_selects_native_gpt_5_6_sol(self) -> None:
+    def test_workflow_selects_provider_scoped_gpt_5_6_sol(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
         source = (workflows / "changelog-x.md").read_text()
         lock = (workflows / "changelog-x.lock.yml").read_text()
@@ -321,11 +321,12 @@ class ChangelogTest(unittest.TestCase):
             (Path(__file__).parents[1] / "aw/actions-lock.json").read_text()
         )
 
-        self.assertIn("model: gpt-5.6-sol", source)
+        self.assertIn("model: copilot/gpt-5.6-sol", source)
+        self.assertNotIn("\n  model: gpt-5.6-sol", source)
         self.assertNotIn("\nimports:", source)
         self.assertFalse((workflows / "shared/gpt-5.6-sol.md").exists())
         self.assertIn('"compiler_version":"v0.82.10"', lock)
-        self.assertIn("COPILOT_MODEL: gpt-5.6-sol", lock)
+        self.assertIn("COPILOT_MODEL: copilot/gpt-5.6-sol", lock)
         self.assertEqual(
             action_lock["entries"]["github/gh-aw-actions/setup@v0.82.10"],
             {
@@ -333,6 +334,28 @@ class ChangelogTest(unittest.TestCase):
                 "version": "v0.82.10",
                 "sha": "05205436a78512d71a2d842e46586ed05f4fa058",
             },
+        )
+
+    def test_workflow_names_repository_defined_jobs(self) -> None:
+        workflows = Path(__file__).parents[1] / "workflows"
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+
+        self.assertIn(
+            "  publish_x:\n    name: Preview or publish X thread",
+            source,
+        )
+        self.assertIn(
+            "    publish-x-thread:\n      name: Validate X thread",
+            source,
+        )
+        self.assertIn(
+            "  publish_x:\n    name: Preview or publish X thread",
+            lock,
+        )
+        self.assertIn(
+            "  publish_x_thread:\n    name: Validate X thread",
+            lock,
         )
 
     def test_workflow_keeps_gh_aw_strict_security(self) -> None:

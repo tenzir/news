@@ -252,10 +252,12 @@ gh extension install github/gh-aw --pin v0.82.10
 gh aw compile changelog-x --approve --validate
 ```
 
-Version 0.82.10 supports GPT-5.6 Sol directly, so the workflow doesn't need a
-custom model alias. It also defaults to strict security: the agent and threat
-detector run without `sudo` or host access. This workflow doesn't depend on
-either capability and must not opt into legacy security.
+Version 0.82.10 supports GPT-5.6 Sol through its model router. The workflow uses
+the exact provider-scoped identifier `copilot/gpt-5.6-sol`; an unscoped value is
+interpreted as an alias, and `gpt-5.6-sol` isn't a built-in alias. The compiler
+also defaults to strict security: the agent and threat detector run without
+`sudo` or host access. This workflow doesn't depend on either capability and
+must not opt into legacy security.
 
 #### Enable live publication
 
