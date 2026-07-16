@@ -33,6 +33,9 @@ engine:
   model: gpt-5.6-sol
   bare: true
 
+imports:
+  - shared/gpt-5.6-sol.md
+
 network: {}
 
 tools:
@@ -75,7 +78,7 @@ steps:
 
 jobs:
   publish_x:
-    name: Publish X thread
+    name: Preview or publish X thread
     needs: [agent, publish_x_thread]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -125,6 +128,7 @@ safe-outputs:
   needs: [publish_x]
   jobs:
     publish-x-thread:
+      name: Validate X thread
       description: >-
         Validate and publish one X thread for an entry in the prepared changelog
         context. Call this exactly once for every prepared entry.

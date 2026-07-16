@@ -252,8 +252,12 @@ gh extension install github/gh-aw --pin v0.82.10
 gh aw compile changelog-x --approve --validate
 ```
 
-Version 0.82.10 supports GPT-5.6 Sol directly, so the workflow doesn't need a
-custom model alias. It also defaults to strict security: the agent and threat
+Version 0.82.10 provides a built-in `gpt-5.6` alias, but that alias can resolve
+to Luna, Sol, or Terra. The workflow therefore imports its own local
+`gpt-5.6-sol` alias from `workflows/shared/gpt-5.6-sol.md`; its only candidate
+is `copilot/gpt-5.6-sol`. Keep that alias: it lets the pinned AWF runtime
+validate an alias while still selecting Sol from the live Copilot model
+catalog. The compiler also defaults to strict security: the agent and threat
 detector run without `sudo` or host access. This workflow doesn't depend on
 either capability and must not opt into legacy security.
 
@@ -261,15 +265,17 @@ either capability and must not opt into legacy security.
 
 Complete these steps before the first live post:
 
-1. Enable GPT-5.6 Sol in the Tenzir organization's Copilot model policy.
-2. Run and approve a representative staged preview.
-3. Confirm that all four X secrets exist in `social-production` and represent
+1. Enable **Allow use of Copilot CLI billed to the organization** under
+   **Organization Settings → Copilot → Policies → Copilot CLI**.
+2. Enable GPT-5.6 Sol in the Tenzir organization's Copilot model policy.
+3. Run and approve a representative staged preview.
+4. Confirm that all four X secrets exist in `social-production` and represent
    `@tenzir_company` with read-and-write access.
-4. Add X API credits and configure an appropriate spending limit.
-5. Change `safe-outputs.staged` and `GH_AW_SAFE_OUTPUTS_STAGED` to `false` in
+5. Add X API credits and configure an appropriate spending limit.
+6. Change `safe-outputs.staged` and `GH_AW_SAFE_OUTPUTS_STAGED` to `false` in
    `workflows/changelog-x.md`.
-6. Recompile the workflow and send the change through a pull request.
-7. After the first successful post, retire the fallback Worker and close
+7. Recompile the workflow and send the change through a pull request.
+8. After the first successful post, retire the fallback Worker and close
    `tenzir/infra#307`.
 
 ## Website rebuilds
