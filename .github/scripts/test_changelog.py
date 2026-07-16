@@ -57,7 +57,7 @@ def sample_payload(*, body: str = "Feature body") -> dict:
         "body": body,
         "authors": ["alice"],
         "prs": [42],
-        "url": "https://tenzir.com/changelog/tenzir-example/unreleased/#feature",
+        "url": "https://tenzir.com/changelog/tenzir-example/",
     }
 
 
@@ -108,7 +108,7 @@ class ChangelogTest(unittest.TestCase):
         self.assertEqual(payload["prs"], [42])
         self.assertEqual(
             payload["url"],
-            "https://tenzir.com/changelog/tenzir-example/unreleased/#feature",
+            "https://tenzir.com/changelog/tenzir-example/",
         )
 
     def test_accepts_only_direct_unreleased_entries(self) -> None:
@@ -497,7 +497,6 @@ class XPublicationTest(unittest.TestCase):
             **sample_payload(),
             "slug": "second",
             "prs": [43],
-            "url": "https://tenzir.com/changelog/tenzir-example/unreleased/#second",
         }
         items = [
             {

@@ -191,11 +191,12 @@ validates the following properties before any write:
 - The posts contain no mentions, em dashes, or unexpected URLs.
 - The thread shape matches the changelog content.
 
-Each post links to the entry on `tenzir.com`, not to its implementation pull
-request. The URL uses the canonical project ID from `changelog/config.yaml`
-and the entry slug. For example, the `skills/` entry named
-`automatic-merging-for-companion-documentation-prs.md` becomes
-`https://tenzir.com/changelog/tenzir-skills/unreleased/#automatic-merging-for-companion-documentation-prs`.
+Each post links to the project's changelog on `tenzir.com`, not to its
+implementation pull request. The URL uses the canonical project ID from
+`changelog/config.yaml`.
+For example, an entry under `skills/` links to
+`https://tenzir.com/changelog/tenzir-skills/`. The project page remains stable
+when an entry moves from the unreleased section into a versioned release.
 The workflow explicitly allows `tenzir.com` so gh-aw's safe-output sanitizer
 preserves that URL. The drafting agent has no general web tool.
 

@@ -65,7 +65,7 @@ def build_payload(file_path: Path) -> ThreadPayload:
     entry = load_entry(file_path)
     config = get_config_for_entry(file_path)
     repo = get_repository(project, config)
-    url = f"https://tenzir.com/changelog/{config['id']}/unreleased/#{file_path.stem}"
+    url = f"https://tenzir.com/changelog/{config['id']}/"
     return {
         "project": project,
         "repo": repo,
