@@ -63,12 +63,9 @@ def build_payload(file_path: Path) -> ThreadPayload:
     """Parse one direct unreleased entry through tenzir-ship."""
     project = project_for_entry(file_path)
     entry = load_entry(file_path)
-    repo = get_repository(project, get_config_for_entry(file_path))
-    url = (
-        f"https://github.com/{repo}/pull/{entry['prs'][0]}"
-        if entry["prs"]
-        else f"https://github.com/{repo}"
-    )
+    config = get_config_for_entry(file_path)
+    repo = get_repository(project, config)
+    url = f"https://tenzir.com/changelog/{config['id']}/unreleased/#{file_path.stem}"
     return {
         "project": project,
         "repo": repo,

@@ -114,7 +114,7 @@ jobs:
           ENTRY: ${{ github.event.inputs.entry || '' }}
           GH_AW_AGENT_OUTPUT: ${{ runner.temp }}/changelog-x/agent_output.json
           # Keep this in sync with safe-outputs.staged below.
-          GH_AW_SAFE_OUTPUTS_STAGED: "true"
+          GH_AW_SAFE_OUTPUTS_STAGED: "false"
           GITHUB_TOKEN: ${{ github.token }}
           X_RETRY_AMBIGUOUS: ${{ github.event.inputs.retry_ambiguous || 'false' }}
           X_API_KEY: ${{ secrets.X_API_KEY }}
@@ -124,7 +124,7 @@ jobs:
         run: python .github/scripts/x_publish.py
 
 safe-outputs:
-  staged: true
+  staged: false
   needs: [publish_x]
   jobs:
     publish-x-thread:

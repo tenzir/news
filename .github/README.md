@@ -187,9 +187,15 @@ validates the following properties before any write:
 
 - The requested entry and content hash match the triggering diff.
 - Every post fits X's weighted-character limit.
-- The source URL occurs once in the final post.
+- The canonical Tenzir changelog URL occurs once in the final post.
 - The posts contain no mentions, em dashes, or unexpected URLs.
 - The thread shape matches the changelog content.
+
+Each post links to the entry on `tenzir.com`, not to its implementation pull
+request. The URL uses the canonical project ID from `changelog/config.yaml`
+and the entry slug. For example, the `skills/` entry named
+`automatic-merging-for-companion-documentation-prs.md` becomes
+`https://tenzir.com/changelog/tenzir-skills/unreleased/#automatic-merging-for-companion-documentation-prs`.
 
 Live publication uses OAuth 1.0a and retries only connection-establishment
 timeouts and explicit rate limits, which are known not to have created a post.
@@ -204,9 +210,9 @@ approval provides a second check before publication resumes.
 
 #### Staged mode
 
-The workflow is currently staged. It runs the model and all validation, then
-renders the proposed thread in the Actions step summary without creating an X
-post or a GitHub check run.
+Staged mode runs the model and all validation, then renders the proposed thread
+in the Actions step summary without creating an X post or a GitHub check run.
+The production workflow has staged mode disabled.
 
 Only the `publish_x` job uses the `social-production` environment. It runs
 after the secret-free safe-output validator, restricts publication to `main`,
@@ -220,23 +226,21 @@ secrets in that environment:
 | `X_ACCESS_TOKEN` | Read-and-write token for the Tenzir X account. |
 | `X_ACCESS_TOKEN_SECRET` | Secret for the read-and-write access token. |
 
-#### Run a staged preview
+#### Run a drafting preview
 
-Run a preview after the workflow exists on `main`:
+Run a branch preview before merging a workflow change:
 
 1. In the `tenzir/news` repository, open **Actions**.
 2. Select **Draft changelog features for X**.
-3. Click **Run workflow** and select `main`.
+3. Click **Run workflow** and select the pull request branch.
 4. Enter an existing direct feature path, such as
    `tenzir/changelog/unreleased/SLUG.md`.
 5. Start the workflow.
-6. When the publication job pauses, review and approve the
-   `social-production` deployment.
-7. In the run summary, inspect **Staged Mode: X Thread Preview**.
+6. Download the `agent` artifact and inspect `agent_output.json`.
 
-The preview consumes Copilot credits but doesn't call X. A direct unreleased
-entry whose type isn't `feature` produces a no-op before inference. An invalid
-entry path fails deterministic validation.
+The branch preview consumes Copilot credits but cannot run the main-only
+publication job. A direct unreleased entry whose type isn't `feature` produces
+a no-op before inference. An invalid entry path fails deterministic validation.
 
 #### Compile the agentic workflow
 
@@ -261,21 +265,20 @@ catalog. The compiler also defaults to strict security: the agent and threat
 detector run without `sudo` or host access. This workflow doesn't depend on
 either capability and must not opt into legacy security.
 
-#### Enable live publication
+#### Live publication
 
-Complete these steps before the first live post:
+The production workflow has live publication enabled. These prerequisites must
+remain in place:
 
-1. Enable **Allow use of Copilot CLI billed to the organization** under
+1. Keep **Allow use of Copilot CLI billed to the organization** enabled under
    **Organization Settings → Copilot → Policies → Copilot CLI**.
-2. Enable GPT-5.6 Sol in the Tenzir organization's Copilot model policy.
-3. Run and approve a representative staged preview.
-4. Confirm that all four X secrets exist in `social-production` and represent
+2. Keep GPT-5.6 Sol enabled in the Tenzir organization's Copilot model policy.
+3. Confirm that all four X secrets exist in `social-production` and represent
    `@tenzir_company` with read-and-write access.
-5. Add X API credits and configure an appropriate spending limit.
-6. Change `safe-outputs.staged` and `GH_AW_SAFE_OUTPUTS_STAGED` to `false` in
+4. Maintain enough X API credits and an appropriate spending limit.
+5. Keep `safe-outputs.staged` and `GH_AW_SAFE_OUTPUTS_STAGED` set to `false` in
    `workflows/changelog-x.md`.
-7. Recompile the workflow and send the change through a pull request.
-8. After the first successful post, retire the fallback Worker and close
+6. After the first successful post, retire the fallback Worker and close
    `tenzir/infra#307`.
 
 ## Website rebuilds
