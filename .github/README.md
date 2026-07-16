@@ -190,7 +190,9 @@ validates the following properties before any write:
 - The thread shape matches the changelog content.
 
 Live publication uses OAuth 1.0a, bounded retries, and a GitHub check-run
-ledger for deduplication and partial-thread resume.
+ledger for deduplication and partial-thread resume. The ledger binds progress
+to the exact drafted posts. If a retry produces different copy after it
+creates a post, publication stops before writing another post.
 
 #### Staged mode
 

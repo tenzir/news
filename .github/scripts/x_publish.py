@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -113,6 +114,16 @@ def validate_posts(payload: ThreadPayload, posts: list[str]) -> list[int]:
             if post.count(payload["url"]) != 1:
                 raise ValueError("the final post must contain the changelog URL once")
     return weighted_lengths
+
+
+def draft_digest(posts: list[str]) -> str:
+    """Return a stable digest for the exact drafted post list."""
+    encoded = json.dumps(
+        posts,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode()
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def expected_payloads(before: str, after: str, entry: str) -> dict[str, ThreadPayload]:
@@ -270,7 +281,14 @@ class CheckLedger:
         runs = result.get("check_runs", [])
         return runs[0] if isinstance(runs, list) and runs else None
 
-    def create(self, commit: str, name: str, entry: Path, tweet_ids: list[str]) -> int:
+    def create(
+        self,
+        commit: str,
+        name: str,
+        entry: Path,
+        tweet_ids: list[str],
+        posts_digest: str,
+    ) -> int:
         result = self._request(
             "POST",
             "/check-runs",
@@ -279,7 +297,12 @@ class CheckLedger:
                 "head_sha": commit,
                 "status": "in_progress",
                 "started_at": datetime.now(UTC).isoformat(),
-                "output": self._output(entry, tweet_ids, "Publishing X thread"),
+                "output": self._output(
+                    entry,
+                    tweet_ids,
+                    posts_digest,
+                    "Publishing X thread",
+                ),
             },
         )
         return int(result["id"])
@@ -289,6 +312,7 @@ class CheckLedger:
         check_id: int,
         entry: Path,
         tweet_ids: list[str],
+        posts_digest: str,
         status: str,
         *,
         conclusion: str | None = None,
@@ -296,7 +320,7 @@ class CheckLedger:
     ) -> None:
         body: dict[str, object] = {
             "status": status,
-            "output": self._output(entry, tweet_ids, message),
+            "output": self._output(entry, tweet_ids, posts_digest, message),
         }
         if status == "completed":
             body["conclusion"] = conclusion
@@ -304,8 +328,19 @@ class CheckLedger:
         self._request("PATCH", f"/check-runs/{check_id}", json=body)
 
     @staticmethod
-    def _output(entry: Path, tweet_ids: list[str], message: str) -> dict[str, str]:
-        state = json.dumps({"tweet_ids": tweet_ids}, separators=(",", ":"))
+    def _output(
+        entry: Path,
+        tweet_ids: list[str],
+        posts_digest: str,
+        message: str,
+    ) -> dict[str, str]:
+        state = json.dumps(
+            {
+                "tweet_ids": tweet_ids,
+                "posts_digest": posts_digest,
+            },
+            separators=(",", ":"),
+        )
         return {
             "title": f"X publication for {entry.name}",
             "summary": message[:65535],
@@ -313,7 +348,8 @@ class CheckLedger:
         }
 
 
-def _resume_ids(previous: dict | None) -> list[str]:
+def _resume_ids(previous: dict | None, posts_digest: str) -> list[str]:
+    """Return resumable post IDs only when they belong to the same draft."""
     if not previous:
         return []
     if previous.get("status") != "completed":
@@ -328,16 +364,20 @@ def _resume_ids(previous: dict | None) -> list[str]:
     output = previous.get("output")
     text = output.get("text") if isinstance(output, dict) else None
     if not isinstance(text, str):
-        return []
+        raise RuntimeError("stored X publication state is invalid")
     try:
         state = json.loads(text)
-    except json.JSONDecodeError:
-        return []
+    except json.JSONDecodeError as error:
+        raise RuntimeError("stored X publication state is invalid") from error
     tweet_ids = state.get("tweet_ids") if isinstance(state, dict) else None
     if not isinstance(tweet_ids, list) or not all(
         isinstance(item, str) for item in tweet_ids
     ):
-        return []
+        raise RuntimeError("stored X publication state is invalid")
+    if tweet_ids and state.get("posts_digest") != posts_digest:
+        raise RuntimeError(
+            "drafted X thread changed after partial publication; refusing to resume"
+        )
     return tweet_ids
 
 
@@ -439,12 +479,19 @@ def publish_live(threads: list[ValidatedThread]) -> None:
     for thread in threads:
         commit = entry_commit(thread.entry)
         name = f"changelog-x/{thread.digest}"
+        posts_digest = draft_digest(thread.posts)
         previous = ledger.previous(commit, name)
         if previous and previous.get("conclusion") == "success":
             print(f"Skipping already published entry: {thread.entry}")
             continue
-        tweet_ids = _resume_ids(previous)
-        check_id = ledger.create(commit, name, thread.entry, tweet_ids)
+        tweet_ids = _resume_ids(previous, posts_digest)
+        check_id = ledger.create(
+            commit,
+            name,
+            thread.entry,
+            tweet_ids,
+            posts_digest,
+        )
         progress_ids = list(tweet_ids)
 
         def record_progress(ids: list[str]) -> None:
@@ -453,6 +500,7 @@ def publish_live(threads: list[ValidatedThread]) -> None:
                 check_id,
                 thread.entry,
                 ids,
+                posts_digest,
                 "in_progress",
                 message=f"Published {len(ids)} of {len(thread.posts)} posts",
             )
@@ -469,6 +517,7 @@ def publish_live(threads: list[ValidatedThread]) -> None:
                 check_id,
                 thread.entry,
                 progress_ids,
+                posts_digest,
                 "completed",
                 conclusion="failure",
                 message=str(error),
@@ -478,6 +527,7 @@ def publish_live(threads: list[ValidatedThread]) -> None:
             check_id,
             thread.entry,
             tweet_ids,
+            posts_digest,
             "completed",
             conclusion="success",
             message=f"Published {len(tweet_ids)} posts to X",

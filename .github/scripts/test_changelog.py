@@ -29,6 +29,7 @@ from x_publish import (  # noqa: E402
     _resume_ids,
     CheckLedger,
     ValidatedThread,
+    draft_digest,
     load_safe_output_items,
     main as publish_main,
     post_one,
@@ -474,23 +475,90 @@ class XPublicationTest(unittest.TestCase):
         self.assertEqual(recorded, [["first", "second"]])
 
     def test_check_state_resumes_failed_threads(self) -> None:
+        posts_digest = draft_digest(["First", "Second"])
         previous = {
             "status": "completed",
             "conclusion": "failure",
-            "output": {"text": '{"tweet_ids":["first"]}'},
+            "output": {
+                "text": json.dumps(
+                    {
+                        "tweet_ids": ["first"],
+                        "posts_digest": posts_digest,
+                    }
+                )
+            },
         }
 
-        self.assertEqual(_resume_ids(previous), ["first"])
+        self.assertEqual(_resume_ids(previous, posts_digest), ["first"])
+
+    def test_check_state_rejects_a_changed_partial_thread(self) -> None:
+        previous = {
+            "status": "completed",
+            "conclusion": "failure",
+            "output": {
+                "text": json.dumps(
+                    {
+                        "tweet_ids": ["first"],
+                        "posts_digest": draft_digest(["First", "Second"]),
+                    }
+                )
+            },
+        }
+
+        with self.assertRaisesRegex(RuntimeError, "changed after partial"):
+            _resume_ids(previous, draft_digest(["Replacement"]))
+
+    def test_check_state_accepts_a_new_draft_before_the_first_post(self) -> None:
+        previous = {
+            "status": "completed",
+            "conclusion": "failure",
+            "output": {
+                "text": json.dumps(
+                    {
+                        "tweet_ids": [],
+                        "posts_digest": draft_digest(["First draft"]),
+                    }
+                )
+            },
+        }
+
+        self.assertEqual(_resume_ids(previous, draft_digest(["New draft"])), [])
+
+    def test_check_state_records_the_draft_digest(self) -> None:
+        posts_digest = draft_digest(["First", "Second"])
+
+        output = CheckLedger._output(
+            Path("project/changelog/unreleased/feature.md"),
+            ["first"],
+            posts_digest,
+            "Publishing X thread",
+        )
+
+        self.assertEqual(
+            json.loads(output["text"]),
+            {
+                "tweet_ids": ["first"],
+                "posts_digest": posts_digest,
+            },
+        )
 
     def test_check_state_blocks_concurrent_publication(self) -> None:
+        posts_digest = draft_digest(["First"])
         previous = {
             "status": "in_progress",
             "started_at": datetime.now(UTC).isoformat(),
-            "output": {"text": '{"tweet_ids":[]}'},
+            "output": {
+                "text": json.dumps(
+                    {
+                        "tweet_ids": [],
+                        "posts_digest": posts_digest,
+                    }
+                )
+            },
         }
 
         with self.assertRaisesRegex(RuntimeError, "already in progress"):
-            _resume_ids(previous)
+            _resume_ids(previous, posts_digest)
 
     def test_live_failure_records_partial_thread_progress(self) -> None:
         payload = sample_payload(body="```tql\nfrom x\n```")
@@ -525,6 +593,7 @@ class XPublicationTest(unittest.TestCase):
 
         failure = ledger.update.call_args_list[-1]
         self.assertEqual(failure.args[2], ["first"])
+        self.assertEqual(failure.args[3], draft_digest(thread.posts))
         self.assertEqual(failure.kwargs["conclusion"], "failure")
 
 
