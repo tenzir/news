@@ -16,7 +16,7 @@ Workflows and must remain at its current path.
 | [`workflows/sync.yaml`](workflows/sync.yaml) | Serializes changelog synchronization and sends Discord notifications. |
 | [`workflows/changelog-x.md`](workflows/changelog-x.md) | Defines the editable agentic workflow that drafts and processes X posts. |
 | [`workflows/changelog-x.lock.yml`](workflows/changelog-x.lock.yml) | Contains the generated, executable GitHub Actions workflow. Don't edit it manually. |
-| [`workflows/changelog-x-check.yaml`](workflows/changelog-x-check.yaml) | Tests the notification and X automation on pull requests. |
+| [`workflows/changelog-x-check.yaml`](workflows/changelog-x-check.yaml) | Tests changelog parsing and X automation on pull requests. |
 | [`workflows/rebuild-content.yaml`](workflows/rebuild-content.yaml) | Requests a `tenzir/content` rebuild after a push to `main`. |
 | [`scripts/`](scripts/) | Contains deterministic parsing, notification, validation, and publication helpers. |
 
@@ -176,7 +176,9 @@ draft the post or thread.
 
 The workflow doesn't support released entries, nested changelogs, or
 `changes/` directories. It processes at most 25 feature entries per run and
-fails before inference when a batch exceeds that limit.
+fails before inference when a batch exceeds that limit. It serializes up to
+100 pending runs in FIFO order so a burst of synchronized entries retains each
+push's commit range.
 
 The model has no credentials or write permissions. It can only request a typed
 `publish_x_thread` safe output. A separate Python job reparses each entry,

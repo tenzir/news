@@ -125,14 +125,14 @@ def added_entry_paths(before: str, after: str) -> list[Path]:
             before,
             after,
             "--",
-            "*/changelog/unreleased/*.md",
+            ":(glob)*/changelog/unreleased/*.md",
         ],
         check=True,
         capture_output=True,
     )
     paths = [Path(os.fsdecode(item)) for item in result.stdout.split(b"\0") if item]
-    # Git pathspecs can match more broadly than our supported layout. Keep the
-    # boundary explicit and fail closed if that ever happens.
+    # Keep the supported-layout boundary explicit even though glob magic stops
+    # wildcards from matching across directory separators.
     for path in paths:
         project_for_entry(path)
     return paths

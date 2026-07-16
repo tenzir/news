@@ -38,6 +38,7 @@ timeout-minutes: 10
 concurrency:
   group: changelog-x
   cancel-in-progress: false
+  queue: max
 
 steps:
   - name: Check out repository

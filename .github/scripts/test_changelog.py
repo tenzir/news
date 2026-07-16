@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -126,7 +127,46 @@ class ChangelogTest(unittest.TestCase):
             paths = added_entry_paths("1" * 40, "2" * 40)
 
         self.assertEqual(paths, [Path("tenzir/changelog/unreleased/feature.md")])
-        self.assertIn("--diff-filter=A", run.call_args.args[0])
+        command = run.call_args.args[0]
+        self.assertIn("--diff-filter=A", command)
+        self.assertEqual(command[-1], ":(glob)*/changelog/unreleased/*.md")
+
+    def test_added_entries_ignore_nested_changelogs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+
+            def git(*args: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run(
+                    ["git", *args],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+
+            previous = Path.cwd()
+            try:
+                os.chdir(root)
+                git("init", "--quiet")
+                git("config", "user.name", "Test")
+                git("config", "user.email", "test@example.com")
+                git("config", "commit.gpgsign", "false")
+                git("commit", "--allow-empty", "--quiet", "-m", "before")
+                before = git("rev-parse", "HEAD").stdout.strip()
+
+                direct = Path("project/changelog/unreleased/direct.md")
+                nested = Path("project/plugins/foo/changelog/unreleased/nested.md")
+                for path in (direct, nested):
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text("entry\n")
+                git("add", ".")
+                git("commit", "--quiet", "-m", "after")
+                after = git("rev-parse", "HEAD").stdout.strip()
+
+                paths = added_entry_paths(before, after)
+            finally:
+                os.chdir(previous)
+
+        self.assertEqual(paths, [direct])
 
     def test_preparation_filters_non_features_and_records_code(self) -> None:
         paths = [
@@ -194,6 +234,19 @@ class ChangelogTest(unittest.TestCase):
             lock,
             rf'"publish-x-thread":\{{[^\n]*"max":{MAX_FEATURE_ENTRIES}',
         )
+
+    def test_workflow_queues_every_changelog_run(self) -> None:
+        workflows = Path(__file__).parents[1] / "workflows"
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+        source_concurrency = source.split("\nconcurrency:\n", 1)[1].split("\n\n", 1)[0]
+        lock_concurrency = lock.split("\nconcurrency:\n", 1)[1].split("\n\n", 1)[0]
+
+        for concurrency in (source_concurrency, lock_concurrency):
+            with self.subTest(concurrency=concurrency):
+                self.assertIn("group: changelog-x", concurrency)
+                self.assertIn("cancel-in-progress: false", concurrency)
+                self.assertIn("queue: max", concurrency)
 
     def test_publication_requires_successful_threat_detection(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
