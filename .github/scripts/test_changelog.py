@@ -57,7 +57,7 @@ def sample_payload(*, body: str = "Feature body") -> dict:
         "body": body,
         "authors": ["alice"],
         "prs": [42],
-        "url": "https://github.com/tenzir/example/pull/42",
+        "url": "https://tenzir.com/changelog/tenzir-example/",
     }
 
 
@@ -83,7 +83,7 @@ class ChangelogTest(unittest.TestCase):
             entry.parent.mkdir(parents=True)
             entry.write_text("unused")
             (root / "project/changelog/config.yaml").write_text(
-                "repository: tenzir/example\n"
+                "id: tenzir-example\nrepository: tenzir/example\n"
             )
             data = {
                 "title": "A feature",
@@ -106,7 +106,10 @@ class ChangelogTest(unittest.TestCase):
         self.assertEqual(payload["repo"], "tenzir/example")
         self.assertEqual(payload["slug"], "feature")
         self.assertEqual(payload["prs"], [42])
-        self.assertEqual(payload["url"], "https://github.com/tenzir/example/pull/42")
+        self.assertEqual(
+            payload["url"],
+            "https://tenzir.com/changelog/tenzir-example/",
+        )
 
     def test_accepts_only_direct_unreleased_entries(self) -> None:
         self.assertEqual(
@@ -374,6 +377,28 @@ class ChangelogTest(unittest.TestCase):
         self.assertNotIn("sudo -E awf", lock)
         self.assertNotIn("--enable-host-access", lock)
 
+    def test_workflow_allows_the_public_changelog_url(self) -> None:
+        workflows = Path(__file__).parents[1] / "workflows"
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+        network = source.split("\nnetwork:\n", 1)[1].split("\n\n", 1)[0]
+
+        self.assertEqual(network, "  allowed:\n    - tenzir.com")
+        self.assertIn("GH_AW_INFO_ALLOWED_DOMAINS: '[\"tenzir.com\"]'", lock)
+        self.assertIn("telemetry.enterprise.githubcopilot.com,tenzir.com", lock)
+
+    def test_workflow_enables_live_publication_consistently(self) -> None:
+        workflows = Path(__file__).parents[1] / "workflows"
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+
+        self.assertIn("staged: false", source)
+        self.assertIn('GH_AW_SAFE_OUTPUTS_STAGED: "false"', source)
+        self.assertIn('GH_AW_INFO_STAGED: "false"', lock)
+        self.assertIn('GH_AW_SAFE_OUTPUTS_STAGED: "false"', lock)
+        self.assertNotIn("GH_AW_SAFE_OUTPUTS_STAGED: true", lock)
+        self.assertNotIn('GH_AW_SAFE_OUTPUTS_STAGED: "true"', lock)
+
 
 class XPublicationTest(unittest.TestCase):
     def test_validation_phase_cannot_preview_or_publish(self) -> None:
@@ -472,7 +497,6 @@ class XPublicationTest(unittest.TestCase):
             **sample_payload(),
             "slug": "second",
             "prs": [43],
-            "url": "https://github.com/tenzir/example/pull/43",
         }
         items = [
             {
