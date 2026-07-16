@@ -348,18 +348,21 @@ class ChangelogTest(unittest.TestCase):
             "models:\n  gpt-5.6-sol:\n    - copilot/gpt-5.6-sol",
             model_alias,
         )
-        self.assertIn('"compiler_version":"v0.82.10"', lock)
+        self.assertIn('"compiler_version":"v0.82.11"', lock)
         self.assertIn("COPILOT_MODEL: gpt-5.6-sol", lock)
         self.assertIn(
             '\\"gpt-5.6-sol\\":[\\"copilot/gpt-5.6-sol\\"]',
             lock,
         )
+        self.assertIn("ghcr.io/github/github-mcp-server:v1.6.0", lock)
+        self.assertIn('"GITHUB_FEATURES": "fields_param"', lock)
+        self.assertIn("invocation_cap_exceeded:", lock)
         self.assertEqual(
-            action_lock["entries"]["github/gh-aw-actions/setup@v0.82.10"],
+            action_lock["entries"]["github/gh-aw-actions/setup@v0.82.11"],
             {
                 "repo": "github/gh-aw-actions/setup",
-                "version": "v0.82.10",
-                "sha": "05205436a78512d71a2d842e46586ed05f4fa058",
+                "version": "v0.82.11",
+                "sha": "38d6267290bb37df338b212151cd6c884e5a26f0",
             },
         )
 

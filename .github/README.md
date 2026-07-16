@@ -183,7 +183,8 @@ push's commit range.
 The model has no credentials or write permissions. It can only request a typed
 `publish_x_thread` safe output. After gh-aw accepts the typed request, the
 main-only Python publisher reparses each entry, binds it to the triggering Git
-diff, and validates the following properties before any write:
+diff, and validates the following properties before any authenticated client
+is constructed or any write occurs:
 
 - The requested entry and content hash match the triggering diff.
 - Every post fits X's weighted-character limit.
@@ -255,24 +256,26 @@ a no-op before inference. An invalid entry path fails deterministic validation.
 
 Edit `workflows/changelog-x.md`, then regenerate
 `workflows/changelog-x.lock.yml`. Install the exact
-[gh-aw v0.82.10 release](https://github.com/github/gh-aw/releases/tag/v0.82.10)
+[gh-aw v0.82.11 release](https://github.com/github/gh-aw/releases/tag/v0.82.11)
 used by the lock, then compile it. The compiler uses the immutable action SHAs
 in `aw/actions-lock.json`:
 
 ```sh
 gh extension remove aw
-gh extension install github/gh-aw --pin v0.82.10
+gh extension install github/gh-aw --pin v0.82.11
 gh aw compile changelog-x --approve --validate
 ```
 
-Version 0.82.10 provides a built-in `gpt-5.6` alias, but that alias can resolve
+Version 0.82.11 provides a built-in `gpt-5.6` alias, but that alias can resolve
 to Luna, Sol, or Terra. The workflow therefore imports its own local
 `gpt-5.6-sol` alias from `workflows/shared/gpt-5.6-sol.md`; its only candidate
 is `copilot/gpt-5.6-sol`. Keep that alias: it lets the pinned AWF runtime
 validate an alias while still selecting Sol from the live Copilot model
-catalog. The compiler also defaults to strict security: the agent and threat
-detector run without `sudo` or host access. This workflow doesn't depend on
-either capability and must not opt into legacy security.
+catalog. Version 0.82.11 also fast-fails saturated Copilot invocation caps,
+separates the safe-output client token from project tokens, and updates the
+bundled GitHub MCP server. None of these changes alters this workflow's
+publication graph. The agent runs without `sudo` or host access, and the
+workflow must not opt into legacy security.
 
 #### Live publication
 
