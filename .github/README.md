@@ -182,14 +182,19 @@ push's commit range.
 
 The model has no credentials or write permissions. It can only request a typed
 `publish_x_thread` safe output. A separate Python job reparses each entry,
-binds it to the triggering Git diff, requires successful threat detection, and
-validates the following properties before any write:
+binds it to the triggering Git diff, and validates the following properties
+before any write:
 
 - The requested entry and content hash match the triggering diff.
 - Every post fits X's weighted-character limit.
 - The canonical Tenzir changelog URL occurs once in the final post.
 - The posts contain no mentions, em dashes, or unexpected URLs.
 - The thread shape matches the changelog content.
+
+AI threat detection is disabled for this workflow. The drafting agent is
+credentialless and read-only, while the separate publisher accepts only the
+typed output after deterministic validation. A second model pass would add AI
+usage and latency without guarding the X credentials or write operation.
 
 Each post links to the project's changelog on `tenzir.com`, not to its
 implementation pull request. The URL uses the canonical project ID from

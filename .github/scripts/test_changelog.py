@@ -254,19 +254,15 @@ class ChangelogTest(unittest.TestCase):
                 self.assertIn("cancel-in-progress: false", concurrency)
                 self.assertIn("queue: max", concurrency)
 
-    def test_publication_requires_successful_threat_detection(self) -> None:
+    def test_workflow_disables_ai_threat_detection(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
         source = (workflows / "changelog-x.md").read_text()
         lock = (workflows / "changelog-x.lock.yml").read_text()
-        source_job = source.split("    publish-x-thread:\n", 1)[1].split(
-            "      inputs:\n", 1
-        )[0]
-        lock_job = lock.split("  publish_x_thread:\n", 1)[1].split(
-            "  safe_outputs:\n", 1
-        )[0]
 
-        self.assertIn("if: needs.detection.result == 'success'", source_job)
-        self.assertIn("needs.detection.result == 'success'", lock_job)
+        self.assertIn("  threat-detection: false\n", source)
+        self.assertNotRegex(lock, r"(?m)^  detection:\s*$")
+        self.assertNotIn("needs.detection", source)
+        self.assertNotIn("needs.detection", lock)
 
     def test_social_environment_is_scoped_to_publication(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"

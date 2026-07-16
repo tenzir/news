@@ -126,6 +126,7 @@ jobs:
         run: python .github/scripts/x_publish.py
 
 safe-outputs:
+  threat-detection: false
   staged: false
   needs: [publish_x]
   jobs:
@@ -134,7 +135,6 @@ safe-outputs:
       description: >-
         Validate and publish one X thread for an entry in the prepared changelog
         context. Call this exactly once for every prepared entry.
-      if: needs.detection.result == 'success'
       max: 25
       runs-on: ubuntu-latest
       output: The X thread request was validated and processed.
