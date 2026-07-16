@@ -71,6 +71,7 @@ jobs:
   publish_x:
     name: Publish X thread
     needs: [agent, publish_x_thread]
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: social-production
     permissions:

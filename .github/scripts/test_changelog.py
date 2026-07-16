@@ -230,6 +230,23 @@ class ChangelogTest(unittest.TestCase):
         self.assertEqual(lock.count("environment: social-production"), 1)
         self.assertIn('X_PUBLICATION_VALIDATE_ONLY: "true"', source)
 
+    def test_production_publication_is_main_only(self) -> None:
+        workflows = Path(__file__).parents[1] / "workflows"
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+        source_publish = source.split("  publish_x:\n", 1)[1].split(
+            "\nsafe-outputs:\n", 1
+        )[0]
+        lock_publish_match = re.search(
+            r"(?ms)^  publish_x:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+            lock,
+        )
+        self.assertIsNotNone(lock_publish_match)
+        lock_publish = lock_publish_match.group(1) if lock_publish_match else ""
+
+        self.assertIn("if: github.ref == 'refs/heads/main'", source_publish)
+        self.assertIn("github.ref == 'refs/heads/main'", lock_publish)
+
     def test_workflow_selects_native_gpt_5_6_sol(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
         source = (workflows / "changelog-x.md").read_text()
