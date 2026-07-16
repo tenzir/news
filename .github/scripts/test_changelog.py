@@ -313,7 +313,7 @@ class ChangelogTest(unittest.TestCase):
                 self.assertIn("retry_ambiguous:", workflow)
                 self.assertIn("X_RETRY_AMBIGUOUS:", workflow)
 
-    def test_workflow_selects_provider_scoped_gpt_5_6_sol(self) -> None:
+    def test_workflow_selects_gpt_5_6_alias(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
         source = (workflows / "changelog-x.md").read_text()
         lock = (workflows / "changelog-x.lock.yml").read_text()
@@ -321,12 +321,17 @@ class ChangelogTest(unittest.TestCase):
             (Path(__file__).parents[1] / "aw/actions-lock.json").read_text()
         )
 
-        self.assertIn("model: copilot/gpt-5.6-sol", source)
+        self.assertIn("model: gpt-5.6", source)
         self.assertNotIn("\n  model: gpt-5.6-sol", source)
+        self.assertNotIn("\n  model: copilot/gpt-5.6-sol", source)
         self.assertNotIn("\nimports:", source)
         self.assertFalse((workflows / "shared/gpt-5.6-sol.md").exists())
         self.assertIn('"compiler_version":"v0.82.10"', lock)
-        self.assertIn("COPILOT_MODEL: copilot/gpt-5.6-sol", lock)
+        self.assertIn("COPILOT_MODEL: gpt-5.6", lock)
+        self.assertIn(
+            '\\"gpt-5.6\\":[\\"copilot/gpt-5.6*\\",\\"openai/gpt-5.6*\\"]',
+            lock,
+        )
         self.assertEqual(
             action_lock["entries"]["github/gh-aw-actions/setup@v0.82.10"],
             {

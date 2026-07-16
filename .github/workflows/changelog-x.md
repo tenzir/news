@@ -30,7 +30,7 @@ permissions:
 
 engine:
   id: copilot
-  model: copilot/gpt-5.6-sol
+  model: gpt-5.6
   bare: true
 
 network: {}
