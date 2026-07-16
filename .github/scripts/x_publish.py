@@ -34,7 +34,7 @@ from changelog_x import (  # noqa: E402
 
 
 X_POST_URL = "https://api.x.com/2/tweets"
-TRANSIENT_STATUS_CODES = {408, 409, 429, 500, 502, 503, 504}
+RETRYABLE_STATUS_CODES = {429}
 MENTION_PATTERN = re.compile(r"(?<![\w@])@[A-Za-z0-9_]+")
 
 
@@ -48,6 +48,10 @@ class SafeOutputItem(TypedDict, total=False):
     post_3: str
     post_4: str
     post_5: str
+
+
+class AmbiguousPostError(RuntimeError):
+    """Report an X write that may have succeeded without returning its ID."""
 
 
 @dataclass(frozen=True)
@@ -317,10 +321,17 @@ class CheckLedger:
         *,
         conclusion: str | None = None,
         message: str,
+        ambiguous: bool = False,
     ) -> None:
         body: dict[str, object] = {
             "status": status,
-            "output": self._output(entry, tweet_ids, posts_digest, message),
+            "output": self._output(
+                entry,
+                tweet_ids,
+                posts_digest,
+                message,
+                ambiguous=ambiguous,
+            ),
         }
         if status == "completed":
             body["conclusion"] = conclusion
@@ -333,14 +344,16 @@ class CheckLedger:
         tweet_ids: list[str],
         posts_digest: str,
         message: str,
+        *,
+        ambiguous: bool = False,
     ) -> dict[str, str]:
-        state = json.dumps(
-            {
-                "tweet_ids": tweet_ids,
-                "posts_digest": posts_digest,
-            },
-            separators=(",", ":"),
-        )
+        publication_state: dict[str, object] = {
+            "tweet_ids": tweet_ids,
+            "posts_digest": posts_digest,
+        }
+        if ambiguous:
+            publication_state["ambiguous"] = True
+        state = json.dumps(publication_state, separators=(",", ":"))
         return {
             "title": f"X publication for {entry.name}",
             "summary": message[:65535],
@@ -348,7 +361,12 @@ class CheckLedger:
         }
 
 
-def _resume_ids(previous: dict | None, posts_digest: str) -> list[str]:
+def _resume_ids(
+    previous: dict | None,
+    posts_digest: str,
+    *,
+    allow_ambiguous_retry: bool = False,
+) -> list[str]:
     """Return resumable post IDs only when they belong to the same draft."""
     if not previous:
         return []
@@ -374,9 +392,17 @@ def _resume_ids(previous: dict | None, posts_digest: str) -> list[str]:
         isinstance(item, str) for item in tweet_ids
     ):
         raise RuntimeError("stored X publication state is invalid")
-    if tweet_ids and state.get("posts_digest") != posts_digest:
+    ambiguous = state.get("ambiguous", False)
+    if not isinstance(ambiguous, bool):
+        raise RuntimeError("stored X publication state is invalid")
+    if (tweet_ids or ambiguous) and state.get("posts_digest") != posts_digest:
         raise RuntimeError(
             "drafted X thread changed after partial publication; refusing to resume"
+        )
+    if ambiguous and not allow_ambiguous_retry:
+        raise RuntimeError(
+            "the previous X write has an ambiguous outcome; inspect the account "
+            "before enabling a manual ambiguous retry"
         )
     return tweet_ids
 
@@ -399,7 +425,7 @@ def post_one(
     *,
     sleep: Callable[[float], None] = time.sleep,
 ) -> str:
-    """Post one X status with bounded retries for transient failures."""
+    """Post once, retrying only failures known not to have created a post."""
     body: dict[str, object] = {"text": text}
     if reply_to:
         body["reply"] = {"in_reply_to_tweet_id": reply_to}
@@ -408,22 +434,37 @@ def post_one(
         response: requests.Response | None = None
         try:
             response = session.post(X_POST_URL, json=body, timeout=30)
-        except requests.RequestException as error:
-            last_error = "failed to reach the X API"
+        except requests.ConnectTimeout as error:
+            last_error = "failed to connect to the X API"
             if attempt == 3:
                 raise RuntimeError(last_error) from error
+        except requests.RequestException as error:
+            raise AmbiguousPostError(
+                "X API request outcome is unknown; inspect the account before retrying"
+            ) from error
         else:
             if response.ok:
                 try:
                     result = response.json()
                     tweet_id = result["data"]["id"]
                 except (KeyError, TypeError, requests.JSONDecodeError) as error:
-                    raise RuntimeError("X API returned an invalid response") from error
+                    raise AmbiguousPostError(
+                        "X may have created the post but returned an invalid response"
+                    ) from error
                 if not isinstance(tweet_id, str):
-                    raise RuntimeError("X API returned an invalid post ID")
+                    raise AmbiguousPostError(
+                        "X may have created the post but returned an invalid post ID"
+                    )
                 return tweet_id
             last_error = f"X API returned HTTP {response.status_code}"
-            if response.status_code not in TRANSIENT_STATUS_CODES or attempt == 3:
+            if response.status_code in RETRYABLE_STATUS_CODES:
+                if attempt == 3:
+                    raise RuntimeError(last_error)
+            elif response.status_code in {408, 409} or response.status_code >= 500:
+                raise AmbiguousPostError(
+                    f"{last_error}; the write outcome is unknown, so it was not retried"
+                )
+            else:
                 raise RuntimeError(last_error)
         sleep(_retry_delay(response, attempt))
     raise RuntimeError(last_error)
@@ -475,6 +516,7 @@ def publish_live(threads: list[ValidatedThread]) -> None:
         raise RuntimeError("GitHub check-run credentials are not configured")
     ledger = CheckLedger(repository, token)
     x_session = x_session_from_environment()
+    allow_ambiguous_retry = os.environ.get("X_RETRY_AMBIGUOUS") == "true"
 
     for thread in threads:
         commit = entry_commit(thread.entry)
@@ -484,7 +526,11 @@ def publish_live(threads: list[ValidatedThread]) -> None:
         if previous and previous.get("conclusion") == "success":
             print(f"Skipping already published entry: {thread.entry}")
             continue
-        tweet_ids = _resume_ids(previous, posts_digest)
+        tweet_ids = _resume_ids(
+            previous,
+            posts_digest,
+            allow_ambiguous_retry=allow_ambiguous_retry,
+        )
         check_id = ledger.create(
             commit,
             name,
@@ -512,6 +558,18 @@ def publish_live(threads: list[ValidatedThread]) -> None:
                 tweet_ids,
                 record_progress,
             )
+        except AmbiguousPostError as error:
+            ledger.update(
+                check_id,
+                thread.entry,
+                progress_ids,
+                posts_digest,
+                "completed",
+                conclusion="action_required",
+                message=str(error),
+                ambiguous=True,
+            )
+            raise
         except Exception as error:
             ledger.update(
                 check_id,

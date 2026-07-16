@@ -13,6 +13,11 @@ on:
         description: Repository-relative unreleased entry path
         required: true
         type: string
+      retry_ambiguous:
+        description: Retry after confirming and removing any ambiguous X post
+        required: false
+        default: false
+        type: boolean
   bots: [tenzir-github-app]
 
 if: >-
@@ -108,6 +113,7 @@ jobs:
           # Keep this in sync with safe-outputs.staged below.
           GH_AW_SAFE_OUTPUTS_STAGED: "true"
           GITHUB_TOKEN: ${{ github.token }}
+          X_RETRY_AMBIGUOUS: ${{ github.event.inputs.retry_ambiguous || 'false' }}
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}

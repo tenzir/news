@@ -191,10 +191,16 @@ validates the following properties before any write:
 - The posts contain no mentions, em dashes, or unexpected URLs.
 - The thread shape matches the changelog content.
 
-Live publication uses OAuth 1.0a, bounded retries, and a GitHub check-run
-ledger for deduplication and partial-thread resume. The ledger binds progress
-to the exact drafted posts. If a retry produces different copy after it
-creates a post, publication stops before writing another post.
+Live publication uses OAuth 1.0a and retries only connection-establishment
+timeouts and explicit rate limits, which are known not to have created a post.
+Ambiguous timeouts and server errors stop immediately. A GitHub check-run
+ledger provides deduplication and partial-thread resume, binds progress to the
+exact drafted posts, and blocks another write after an ambiguous outcome.
+
+To recover an ambiguous write, inspect `@tenzir_company`. Delete the post if X
+created it, then manually dispatch the same entry with **Retry after confirming
+and removing any ambiguous X post** enabled. The protected environment
+approval provides a second check before publication resumes.
 
 #### Staged mode
 

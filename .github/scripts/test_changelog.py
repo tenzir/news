@@ -13,6 +13,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import requests
+
 sys.path.insert(0, str(Path(__file__).parent))
 
 from changelog import load_entry  # noqa: E402
@@ -28,6 +30,7 @@ from changelog_x import (  # noqa: E402
 )
 from x_publish import (  # noqa: E402
     _resume_ids,
+    AmbiguousPostError,
     CheckLedger,
     ValidatedThread,
     draft_digest,
@@ -300,6 +303,16 @@ class ChangelogTest(unittest.TestCase):
         self.assertIn("if: github.ref == 'refs/heads/main'", source_publish)
         self.assertIn("github.ref == 'refs/heads/main'", lock_publish)
 
+    def test_workflow_exposes_ambiguous_retry_recovery(self) -> None:
+        workflows = Path(__file__).parents[1] / "workflows"
+        source = (workflows / "changelog-x.md").read_text()
+        lock = (workflows / "changelog-x.lock.yml").read_text()
+
+        for workflow in (source, lock):
+            with self.subTest(workflow=workflow[:80]):
+                self.assertIn("retry_ambiguous:", workflow)
+                self.assertIn("X_RETRY_AMBIGUOUS:", workflow)
+
     def test_workflow_selects_native_gpt_5_6_sol(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
         source = (workflows / "changelog-x.md").read_text()
@@ -516,18 +529,43 @@ class XPublicationTest(unittest.TestCase):
             timeout=30,
         )
 
-    def test_post_one_retries_transient_failures(self) -> None:
-        transient = Mock(ok=False, status_code=503, headers={})
+    def test_post_one_retries_only_known_safe_failures(self) -> None:
         success = Mock(ok=True)
         success.json.return_value = {"data": {"id": "123"}}
-        session = Mock()
-        session.post.side_effect = [transient, success]
-        sleep = Mock()
+        failures = [
+            Mock(ok=False, status_code=429, headers={}),
+            requests.ConnectTimeout(),
+        ]
 
-        result = post_one(session, "First post", None, sleep=sleep)
+        for failure in failures:
+            with self.subTest(failure=type(failure).__name__):
+                session = Mock()
+                session.post.side_effect = [failure, success]
+                sleep = Mock()
 
-        self.assertEqual(result, "123")
-        sleep.assert_called_once_with(1.0)
+                result = post_one(session, "First post", None, sleep=sleep)
+
+                self.assertEqual(result, "123")
+                sleep.assert_called_once_with(1.0)
+
+    def test_post_one_does_not_retry_ambiguous_failures(self) -> None:
+        response = Mock(ok=False, status_code=503, headers={})
+        failures = [response, requests.ReadTimeout()]
+
+        for failure in failures:
+            with self.subTest(failure=type(failure).__name__):
+                session = Mock()
+                if isinstance(failure, requests.RequestException):
+                    session.post.side_effect = failure
+                else:
+                    session.post.return_value = failure
+                sleep = Mock()
+
+                with self.assertRaisesRegex(AmbiguousPostError, "unknown"):
+                    post_one(session, "First post", None, sleep=sleep)
+
+                self.assertEqual(session.post.call_count, 1)
+                sleep.assert_not_called()
 
     def test_post_thread_resumes_after_recorded_posts(self) -> None:
         session = Mock()
@@ -593,6 +631,29 @@ class XPublicationTest(unittest.TestCase):
         }
 
         self.assertEqual(_resume_ids(previous, draft_digest(["New draft"])), [])
+
+    def test_check_state_requires_opt_in_after_an_ambiguous_write(self) -> None:
+        posts_digest = draft_digest(["First", "Second"])
+        previous = {
+            "status": "completed",
+            "conclusion": "action_required",
+            "output": {
+                "text": json.dumps(
+                    {
+                        "tweet_ids": ["first"],
+                        "posts_digest": posts_digest,
+                        "ambiguous": True,
+                    }
+                )
+            },
+        }
+
+        with self.assertRaisesRegex(RuntimeError, "ambiguous outcome"):
+            _resume_ids(previous, posts_digest)
+        self.assertEqual(
+            _resume_ids(previous, posts_digest, allow_ambiguous_retry=True),
+            ["first"],
+        )
 
     def test_check_state_records_the_draft_digest(self) -> None:
         posts_digest = draft_digest(["First", "Second"])
@@ -665,6 +726,40 @@ class XPublicationTest(unittest.TestCase):
         self.assertEqual(failure.args[2], ["first"])
         self.assertEqual(failure.args[3], draft_digest(thread.posts))
         self.assertEqual(failure.kwargs["conclusion"], "failure")
+
+    def test_live_ambiguous_failure_requires_manual_action(self) -> None:
+        payload = sample_payload()
+        thread = ValidatedThread(
+            entry=Path("project/changelog/unreleased/feature.md"),
+            payload=payload,
+            digest=payload_hash(payload),
+            posts=[f"Feature {payload['url']}"],
+            weighted_lengths=[52],
+        )
+        ledger = Mock(spec=CheckLedger)
+        ledger.previous.return_value = None
+        ledger.create.return_value = 99
+        environment = {
+            "GITHUB_REPOSITORY": "tenzir/news",
+            "GITHUB_TOKEN": "token",
+        }
+        with (
+            patch.dict(os.environ, environment, clear=True),
+            patch("x_publish.CheckLedger", return_value=ledger),
+            patch("x_publish.x_session_from_environment", return_value=Mock()),
+            patch("x_publish.entry_commit", return_value="1" * 40),
+            patch(
+                "x_publish.post_thread",
+                side_effect=AmbiguousPostError("write outcome is unknown"),
+            ),
+            self.assertRaisesRegex(AmbiguousPostError, "unknown"),
+        ):
+            publish_live([thread])
+
+        failure = ledger.update.call_args_list[-1]
+        self.assertEqual(failure.args[2], [])
+        self.assertEqual(failure.kwargs["conclusion"], "action_required")
+        self.assertTrue(failure.kwargs["ambiguous"])
 
 
 if __name__ == "__main__":
