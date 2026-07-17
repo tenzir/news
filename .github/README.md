@@ -266,9 +266,12 @@ gh extension install github/gh-aw --pin v0.82.12
 gh aw compile changelog-x --approve --validate
 ```
 
-The workflow selects `copilot/gpt-5.6-sol` by its provider-scoped ID, which
-resolves an exact model catalog match without a local alias. Don't replace it
-with the built-in `gpt-5.6` alias because that can resolve to Luna, Sol, or
+The workflow selects the model through the local `gpt-5.6-sol` alias that
+`workflows/shared/gpt-5.6-sol.md` registers, steering exactly to
+`copilot/gpt-5.6-sol`. Don't select the provider-scoped ID directly: it
+compiles but AWF rejects it at engine startup, since the firewall validates
+alias-map keys only (github/gh-aw#46306). Don't replace the alias with the
+built-in `gpt-5.6` alias either, because that can resolve to Luna, Sol, or
 Terra. Version 0.82.12 also excludes job-output credential variables from the
 agent sandbox. It retains fast failure for saturated Copilot invocation caps,
 safe-output client token separation, and GitHub MCP server v1.6.0. None of
