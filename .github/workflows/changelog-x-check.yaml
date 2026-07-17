@@ -11,7 +11,6 @@ on:
       - ".github/workflows/changelog-x-check.yaml"
       - ".github/workflows/changelog-x.lock.yml"
       - ".github/workflows/changelog-x.md"
-      - ".github/workflows/shared/gpt-5.6-sol.md"
       - ".github/workflows/sync.yaml"
 
 permissions:
