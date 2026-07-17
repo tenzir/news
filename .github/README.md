@@ -256,26 +256,24 @@ a no-op before inference. An invalid entry path fails deterministic validation.
 
 Edit `workflows/changelog-x.md`, then regenerate
 `workflows/changelog-x.lock.yml`. Install the exact
-[gh-aw v0.82.11 release](https://github.com/github/gh-aw/releases/tag/v0.82.11)
+[gh-aw v0.82.12 release](https://github.com/github/gh-aw/releases/tag/v0.82.12)
 used by the lock, then compile it. The compiler uses the immutable action SHAs
 in `aw/actions-lock.json`:
 
 ```sh
 gh extension remove aw
-gh extension install github/gh-aw --pin v0.82.11
+gh extension install github/gh-aw --pin v0.82.12
 gh aw compile changelog-x --approve --validate
 ```
 
-Version 0.82.11 provides a built-in `gpt-5.6` alias, but that alias can resolve
-to Luna, Sol, or Terra. The workflow therefore imports its own local
-`gpt-5.6-sol` alias from `workflows/shared/gpt-5.6-sol.md`; its only candidate
-is `copilot/gpt-5.6-sol`. Keep that alias: it lets the pinned AWF runtime
-validate an alias while still selecting Sol from the live Copilot model
-catalog. Version 0.82.11 also fast-fails saturated Copilot invocation caps,
-separates the safe-output client token from project tokens, and updates the
-bundled GitHub MCP server. None of these changes alters this workflow's
-publication graph. The agent runs without `sudo` or host access, and the
-workflow must not opt into legacy security.
+The workflow selects `copilot/gpt-5.6-sol` by its provider-scoped ID, which
+resolves an exact model catalog match without a local alias. Don't replace it
+with the built-in `gpt-5.6` alias because that can resolve to Luna, Sol, or
+Terra. Version 0.82.12 also excludes job-output credential variables from the
+agent sandbox. It retains fast failure for saturated Copilot invocation caps,
+safe-output client token separation, and GitHub MCP server v1.6.0. None of
+these changes alters this workflow's publication graph. The agent runs without
+`sudo` or host access, and the workflow must not opt into legacy security.
 
 #### Live publication
 

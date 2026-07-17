@@ -333,24 +333,21 @@ class ChangelogTest(unittest.TestCase):
                 self.assertIn("retry_ambiguous:", workflow)
                 self.assertIn("X_RETRY_AMBIGUOUS:", workflow)
 
-    def test_workflow_pins_gpt_5_6_sol_with_local_alias(self) -> None:
+    def test_workflow_pins_gpt_5_6_sol_by_provider_scoped_id(self) -> None:
         workflows = Path(__file__).parents[1] / "workflows"
         source = (workflows / "changelog-x.md").read_text()
         lock = (workflows / "changelog-x.lock.yml").read_text()
         action_lock = json.loads(
             (Path(__file__).parents[1] / "aw/actions-lock.json").read_text()
         )
-        model_alias = (workflows / "shared/gpt-5.6-sol.md").read_text()
 
-        self.assertIn("model: gpt-5.6-sol", source)
-        self.assertIn("imports:\n  - shared/gpt-5.6-sol.md", source)
-        self.assertIn(
-            "models:\n  gpt-5.6-sol:\n    - copilot/gpt-5.6-sol",
-            model_alias,
-        )
-        self.assertIn('"compiler_version":"v0.82.11"', lock)
-        self.assertIn("COPILOT_MODEL: gpt-5.6-sol", lock)
-        self.assertIn(
+        self.assertIn("model: copilot/gpt-5.6-sol", source)
+        self.assertNotIn("shared/gpt-5.6-sol.md", source)
+        self.assertFalse((workflows / "shared/gpt-5.6-sol.md").exists())
+        self.assertIn('"compiler_version":"v0.82.12"', lock)
+        self.assertIn("COPILOT_MODEL: copilot/gpt-5.6-sol", lock)
+        self.assertNotIn("shared/gpt-5.6-sol.md", lock)
+        self.assertNotIn(
             '\\"gpt-5.6-sol\\":[\\"copilot/gpt-5.6-sol\\"]',
             lock,
         )
@@ -358,11 +355,11 @@ class ChangelogTest(unittest.TestCase):
         self.assertIn('"GITHUB_FEATURES": "fields_param"', lock)
         self.assertIn("invocation_cap_exceeded:", lock)
         self.assertEqual(
-            action_lock["entries"]["github/gh-aw-actions/setup@v0.82.11"],
+            action_lock["entries"]["github/gh-aw-actions/setup@v0.82.12"],
             {
                 "repo": "github/gh-aw-actions/setup",
-                "version": "v0.82.11",
-                "sha": "38d6267290bb37df338b212151cd6c884e5a26f0",
+                "version": "v0.82.12",
+                "sha": "23fd0ef1f0a76a3707df928f9c733abd98e4ec75",
             },
         )
 

@@ -30,11 +30,8 @@ permissions:
 
 engine:
   id: copilot
-  model: gpt-5.6-sol
+  model: copilot/gpt-5.6-sol
   bare: true
-
-imports:
-  - shared/gpt-5.6-sol.md
 
 network:
   allowed:
