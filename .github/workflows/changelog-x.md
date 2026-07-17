@@ -30,8 +30,12 @@ permissions:
 
 engine:
   id: copilot
-  model: copilot/gpt-5.6-sol
+  model: gpt-5.6-sol
   bare: true
+
+# AWF accepts only alias-map keys at runtime, not provider-scoped model IDs.
+imports:
+  - shared/gpt-5.6-sol.md
 
 network:
   allowed:
