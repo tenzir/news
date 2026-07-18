@@ -3,22 +3,16 @@
 This document is the maintainer guide for GitHub Actions, changelog
 synchronization, notifications, and deployment automation in `tenzir/news`.
 
-Markdown files under `workflows/` aren't necessarily documentation. In
-particular, `workflows/changelog-x.md` is an executable input to GitHub Agentic
-Workflows and must remain at its current path.
-
 ## Workflow map
 
 | Path | Purpose |
 | --- | --- |
 | [`actions/sync/action.yaml`](actions/sync/action.yaml) | Triggers this repository's synchronization workflow from a source repository. |
-| [`aw/actions-lock.json`](aw/actions-lock.json) | Caches immutable action pins for reproducible agentic workflow compilation. |
 | [`workflows/sync.yaml`](workflows/sync.yaml) | Serializes changelog synchronization and sends Discord notifications. |
-| [`workflows/changelog-x.md`](workflows/changelog-x.md) | Defines the editable agentic workflow that drafts and processes X posts. |
-| [`workflows/changelog-x.lock.yml`](workflows/changelog-x.lock.yml) | Contains the generated, executable GitHub Actions workflow. Don't edit it manually. |
-| [`workflows/changelog-x-check.yaml`](workflows/changelog-x-check.yaml) | Tests changelog parsing and X automation on pull requests. |
+| [`workflows/changelog-x-relay.yaml`](workflows/changelog-x-relay.yaml) | Relays newly added changelog entries to the workflows Worker for X drafting. |
+| [`workflows/changelog-check.yaml`](workflows/changelog-check.yaml) | Tests the shared changelog helpers on pull requests. |
 | [`workflows/rebuild-content.yaml`](workflows/rebuild-content.yaml) | Requests a `tenzir/content` rebuild after a push to `main`. |
-| [`scripts/`](scripts/) | Contains deterministic parsing, notification, validation, and publication helpers. |
+| [`scripts/`](scripts/) | Contains deterministic parsing and notification helpers. |
 
 ## Changelog synchronization
 
@@ -168,130 +162,29 @@ Notification failures don't fail the synchronization run.
 
 ### X automation
 
-Every push to `main` checks for newly added feature entries matching
-`PROJECT/changelog/unreleased/SLUG.md`. Deterministic Python preprocessing
-loads each entry through the `tenzir-ship` API. A
-[GitHub Agentic Workflow](https://github.github.com/gh-aw/) uses GPT-5.6 Sol to
-draft the post or thread.
+Every push to `main` runs `workflows/changelog-x-relay.yaml`, which collects
+newly added feature entries matching `PROJECT/changelog/unreleased/SLUG.md`
+and relays the commit SHA and entry paths to the `workflows` Cloudflare Worker
+in [`tenzir/infra`](https://github.com/tenzir/infra) (`website/workflows/`).
+Everything else — fetching and parsing the entries, drafting posts with
+GPT-5.6 Sol through an AI Gateway, deterministic validation (weighted
+280-character limit, canonical changelog URL exactly once in the final post,
+no mentions or em dashes, thread shape matching the entry content), and
+OAuth 1.0a publication to `@tenzir_company` — happens in that Worker as a
+durable Cloudflare Workflow. See the Worker's README for the full design,
+including the Durable Object ledger that guarantees a crash can never publish
+a duplicate post.
 
-The workflow doesn't support released entries, nested changelogs, or
-`changes/` directories. It processes at most 25 feature entries per run and
-fails before inference when a batch exceeds that limit. It serializes up to
-100 pending runs in FIFO order so a burst of synchronized entries retains each
-push's commit range.
-
-The model has no credentials or write permissions. It can only request a typed
-`publish_x_thread` safe output. After gh-aw accepts the typed request, the
-main-only Python publisher reparses each entry, binds it to the triggering Git
-diff, and validates the following properties before any authenticated client
-is constructed or any write occurs:
-
-- The requested entry and content hash match the triggering diff.
-- Every post fits X's weighted-character limit.
-- The canonical Tenzir changelog URL occurs once in the final post.
-- The posts contain no mentions, em dashes, or unexpected URLs.
-- The thread shape matches the changelog content.
-
-AI threat detection is disabled for this workflow. The drafting agent is
-credentialless and read-only, while the publisher validates every typed request
-before it constructs authenticated clients. A second model pass would add AI
-usage and latency without guarding the X credentials or write operation.
-
-Each post links to the project's changelog on `tenzir.com`, not to its
-implementation pull request. The URL uses the canonical project ID from
-`changelog/config.yaml`.
-For example, an entry under `skills/` links to
-`https://tenzir.com/changelog/tenzir-skills/`. The project page remains stable
-when an entry moves from the unreleased section into a versioned release.
-The workflow explicitly allows `tenzir.com` so gh-aw's safe-output sanitizer
-preserves that URL. The drafting agent has no general web tool.
-
-Live publication uses OAuth 1.0a and retries only connection-establishment
-timeouts and explicit rate limits, which are known not to have created a post.
-Ambiguous timeouts and server errors stop immediately. A GitHub check-run
-ledger provides deduplication and partial-thread resume, binds progress to the
-exact drafted posts, and blocks another write after an ambiguous outcome.
-
-To recover an ambiguous write, inspect `@tenzir_company`. Delete the post if X
-created it, then manually dispatch the same entry with **Retry after confirming
-and removing any ambiguous X post** enabled. The explicit dispatch and retry
-flag provide operator confirmation before publication resumes.
-
-#### Staged mode
-
-Staged mode runs the model and all validation, then renders the proposed thread
-in the Actions step summary without creating an X post or a GitHub check run.
-The production workflow has staged mode disabled.
-
-Only the `publish_x` job uses the `social-production` environment. It runs
-after the secret-free typed-output gate, restricts publication to `main`, and
-validates and publishes in one execution. The environment has no required
-reviewers or wait timer, so validated feature entries publish without human
-intervention. Store these secrets in that environment:
+This repository needs one Actions secret:
 
 | Secret | Purpose |
 | --- | --- |
-| `X_API_KEY` | OAuth 1.0a consumer key for the X application. |
-| `X_API_SECRET` | OAuth 1.0a consumer secret for the X application. |
-| `X_ACCESS_TOKEN` | Read-and-write token for the Tenzir X account. |
-| `X_ACCESS_TOKEN_SECRET` | Secret for the read-and-write access token. |
+| `WORKFLOWS_NEWS_TOKEN` | Authenticates the relay against the Worker. Mirrors the `workflows-news-token` value in the Cloudflare Secrets Store. |
 
-#### Run a drafting preview
-
-Run a branch preview before merging a workflow change:
-
-1. In the `tenzir/news` repository, open **Actions**.
-2. Select **Draft changelog features for X**.
-3. Click **Run workflow** and select the pull request branch.
-4. Enter an existing direct feature path, such as
-   `tenzir/changelog/unreleased/SLUG.md`.
-5. Start the workflow.
-6. Download the `agent` artifact and inspect `agent_output.json`.
-
-The branch preview consumes Copilot credits but cannot run the main-only
-publication job. A direct unreleased entry whose type isn't `feature` produces
-a no-op before inference. An invalid entry path fails deterministic validation.
-
-#### Compile the agentic workflow
-
-Edit `workflows/changelog-x.md`, then regenerate
-`workflows/changelog-x.lock.yml`. Install the exact
-[gh-aw v0.82.12 release](https://github.com/github/gh-aw/releases/tag/v0.82.12)
-used by the lock, then compile it. The compiler uses the immutable action SHAs
-in `aw/actions-lock.json`:
-
-```sh
-gh extension remove aw
-gh extension install github/gh-aw --pin v0.82.12
-gh aw compile changelog-x --approve --validate
-```
-
-The workflow selects `copilot/gpt-5.6-sol` by its provider-scoped ID, which
-resolves an exact model catalog match without a local alias. Don't replace it
-with the built-in `gpt-5.6` alias because that can resolve to Luna, Sol, or
-Terra. Version 0.82.12 also excludes job-output credential variables from the
-agent sandbox. It retains fast failure for saturated Copilot invocation caps,
-safe-output client token separation, and GitHub MCP server v1.6.0. None of
-these changes alters this workflow's publication graph. The agent runs without
-`sudo` or host access, and the workflow must not opt into legacy security.
-
-#### Live publication
-
-The production workflow has live publication enabled. These prerequisites must
-remain in place:
-
-1. Keep **Allow use of Copilot CLI billed to the organization** enabled under
-   **Organization Settings → Copilot → Policies → Copilot CLI**.
-2. Keep GPT-5.6 Sol enabled in the Tenzir organization's Copilot model policy.
-3. Confirm that all four X secrets exist in `social-production` and represent
-   `@tenzir_company` with read-and-write access.
-4. Keep `social-production` restricted to `main` without required reviewers or
-   a wait timer.
-5. Maintain enough X API credits and an appropriate spending limit.
-6. Keep `safe-outputs.staged` and `GH_AW_SAFE_OUTPUTS_STAGED` set to `false` in
-   `workflows/changelog-x.md`.
-7. After the first successful post, retire the fallback Worker and close
-   `tenzir/infra#307`.
+To recover an ambiguous write (the Worker refused to publish because a prior
+write's outcome is unknown), inspect `@tenzir_company`. Delete the post if X
+created it, then manually dispatch the relay for the same entry with **Retry
+after confirming and removing any ambiguous X post** enabled.
 
 ## Website rebuilds
 
@@ -304,8 +197,7 @@ requests a token scoped to the `content` repository.
 
 ## Validate CI changes
 
-Run these checks before committing changes to notification scripts or the X
-workflow:
+Run these checks before committing changes to the notification scripts:
 
 ```sh
 uv run --with-requirements .github/scripts/requirements.txt \
@@ -314,6 +206,3 @@ uvx ruff check .github/scripts
 uvx ruff format --check .github/scripts
 git diff --check
 ```
-
-When you change `workflows/changelog-x.md`, compile it with the pinned gh-aw
-release and commit the resulting lock file.

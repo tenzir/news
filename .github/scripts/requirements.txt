@@ -2,7 +2,5 @@ click
 discord-webhook
 pyyaml
 requests
-requests-oauthlib
 setuptools<81
 tenzir-ship
-twitter-text-parser
