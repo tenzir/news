@@ -182,9 +182,10 @@ This repository needs one Actions secret:
 | `WORKFLOWS_NEWS_TOKEN` | Authenticates the relay against the Worker. Mirrors the `workflows-news-token` value in the Cloudflare Secrets Store. |
 
 To recover an ambiguous write (the Worker refused to publish because a prior
-write's outcome is unknown), inspect `@tenzir_company`. Delete the post if X
-created it, then manually dispatch the relay for the same entry with **Retry
-after confirming and removing any ambiguous X post** enabled.
+write's outcome is unknown), delete the entire partial thread from
+`@tenzir_company`, including any post whose creation was ambiguous. Then
+manually dispatch the relay for the same entry with **Retry after deleting the
+entire partial X thread** enabled.
 
 ## Website rebuilds
 

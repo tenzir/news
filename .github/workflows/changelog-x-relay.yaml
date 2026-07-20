@@ -17,7 +17,7 @@ on:
         required: true
         type: string
       retry_ambiguous:
-        description: Retry after confirming and removing any ambiguous X post
+        description: Retry after deleting the entire partial X thread
         required: false
         default: false
         type: boolean
