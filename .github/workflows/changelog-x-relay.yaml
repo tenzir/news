@@ -1,0 +1,96 @@
+name: Relay changelog features to X drafting
+
+# Thin shim: reports newly added unreleased changelog entries to the
+# `workflows` Cloudflare Worker (tenzir/infra:/website/workflows), which
+# drafts, validates, and publishes the X posts as a durable Cloudflare
+# Workflow. This repository only relays the commit and the entry paths.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*/changelog/unreleased/*.md"
+  workflow_dispatch:
+    inputs:
+      entry:
+        description: Repository-relative unreleased entry path
+        required: true
+        type: string
+      retry_ambiguous:
+        description: Retry after deleting the entire partial X thread
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: changelog-x-relay
+  cancel-in-progress: false
+
+jobs:
+  relay:
+    name: Relay to workflows Worker
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[skip notifications]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Collect added entries
+        id: collect
+        env:
+          BEFORE: ${{ github.event.before || '' }}
+          AFTER: ${{ github.event.after || github.sha }}
+          ENTRY: ${{ github.event.inputs.entry || '' }}
+        run: |
+          if [ -n "$ENTRY" ]; then
+            printf '%s\n' "$ENTRY" > /tmp/files
+          else
+            before="$BEFORE"
+            if [ "$before" = "0000000000000000000000000000000000000000" ] || [ -z "$before" ]; then
+              before="$(git hash-object -t tree /dev/null)"
+            fi
+            git diff --name-only --diff-filter=A "$before" "$AFTER" -- \
+              ':(glob)*/changelog/unreleased/*.md' > /tmp/files
+          fi
+          if [ ! -s /tmp/files ]; then
+            echo "No newly added unreleased entries; nothing to relay."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          jq --null-input --raw-input \
+            --arg after "$AFTER" \
+            --argjson manual "${{ github.event_name == 'workflow_dispatch' }}" \
+            --argjson retry "${{ github.event.inputs.retry_ambiguous || 'false' }}" \
+            '{after: $after, files: [inputs], retryAmbiguous: $retry, force: $manual}' \
+            /tmp/files > /tmp/payload.json
+          cat /tmp/payload.json
+
+      - name: Dispatch drafting workflow
+        if: steps.collect.outputs.skip == 'false'
+        env:
+          WORKFLOWS_NEWS_TOKEN: ${{ secrets.WORKFLOWS_NEWS_TOKEN }}
+        run: |
+          response="$(curl --fail-with-body --silent --show-error \
+            -X POST https://workflows.tenzir.workers.dev/changelog/x \
+            -H "Authorization: Bearer $WORKFLOWS_NEWS_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data @/tmp/payload.json)"
+          echo "$response"
+          {
+            echo "## Changelog X relay"
+            echo
+            echo 'Dispatched to the workflows Worker. Inspect the run with:'
+            echo
+            echo '```'
+            echo "wrangler workflows instances describe changelog-x $(echo "$response" | jq -r .id)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
