@@ -7,6 +7,11 @@ inputs:
       Project name (usually not needed - defaults to source repo name)
     required: false
     default: ${{ github.event.repository.name }}
+  source_repo:
+    description: >-
+      Repository to clone the changelog from (defaults to the calling repo)
+    required: false
+    default: ${{ github.event.repository.name }}
   target:
     description: Target directory name in news repo (defaults to project name)
     required: false
@@ -47,6 +52,7 @@ runs:
           --repo "${{ inputs.target_repo }}" \
           --ref "${{ inputs.ref }}" \
           --field project="${{ inputs.project }}" \
+          --field source_repo="${{ inputs.source_repo }}" \
           --field target="${{ inputs.target }}" \
           --field path="${{ inputs.path }}" \
           --field extra_paths="${{ inputs.extra_paths }}" \
