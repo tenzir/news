@@ -6,8 +6,13 @@ on:
       # The validation step verifies via GitHub API that the repository exists
       # in the tenzir organization, rejecting path traversal and typos.
       project:
-        description: "Source repository to sync (any tenzir/* repo)"
+        description: "Project identity and target directory name"
         required: true
+        type: string
+      source_repo:
+        description: "Repository to clone the changelog from (defaults to project)"
+        required: false
+        default: ""
         type: string
       target:
         description: "Target directory name (defaults to project name)"
@@ -59,16 +64,20 @@ jobs:
         id: resolve
         run: |
           target="${{ inputs.target }}"
+          source_repo="${{ inputs.source_repo }}"
           echo "dir=${target:-${{ inputs.project }}}" >> "$GITHUB_OUTPUT"
+          echo "repo=${source_repo:-${{ inputs.project }}}" >> "$GITHUB_OUTPUT"
 
-      - name: Validate project name
+      - name: Validate project and source repository names
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          if ! gh api "repos/tenzir/${{ inputs.project }}" --silent; then
-            echo "::error::Repository tenzir/${{ inputs.project }} does not exist"
-            exit 1
-          fi
+          for repo in "${{ inputs.project }}" "${{ steps.resolve.outputs.repo }}"; do
+            if ! gh api "repos/tenzir/${repo}" --silent; then
+              echo "::error::Repository tenzir/${repo} does not exist"
+              exit 1
+            fi
+          done
 
       - name: Clone source repository
         id: clone
@@ -76,7 +85,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git clone --depth 1 \
-            "https://x-access-token:${GH_TOKEN}@github.com/tenzir/${{ inputs.project }}.git" \
+            "https://x-access-token:${GH_TOKEN}@github.com/tenzir/${{ steps.resolve.outputs.repo }}.git" \
             /tmp/source
           echo "sha=$(git -C /tmp/source rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
@@ -127,7 +136,7 @@ jobs:
         uses: planetscale/ghcommit-action@v0.2.0
         with:
           commit_message: >-
-            Sync changelog from tenzir/${{ inputs.project }}@${{ steps.clone.outputs.sha }}${{ inputs.skip_notifications && ' [skip notifications]' || '' }}
+            Sync changelog from tenzir/${{ steps.resolve.outputs.repo }}@${{ steps.clone.outputs.sha }}${{ inputs.skip_notifications && ' [skip notifications]' || '' }}
           repo: ${{ github.repository }}
           branch: ${{ github.ref_name }}
           empty: false
