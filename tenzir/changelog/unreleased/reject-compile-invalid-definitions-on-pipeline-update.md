@@ -4,8 +4,6 @@ type: bugfix
 authors:
   - gitryder
   - claude
-prs:
-  - 21
 created: 2026-07-29T08:35:47.830081Z
 ---
 

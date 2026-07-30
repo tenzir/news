@@ -3,8 +3,6 @@ title: Optionally validate batches read from persisted stores
 type: feature
 authors:
   - raxyte
-prs:
-  - 16
 created: 2026-07-28T00:00:00.000000Z
 ---
 
