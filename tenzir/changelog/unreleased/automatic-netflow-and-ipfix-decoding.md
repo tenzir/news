@@ -8,7 +8,7 @@ created: 2026-08-01T09:02:33.311724Z
 ---
 
 The new `read_netflow` operator automatically decodes NetFlow v5, NetFlow v9,
-and IPFIX from byte streams and binary UDP envelopes:
+and IPFIX from byte streams and binary message events, including UDP envelopes:
 
 ```tql
 accept_udp "0.0.0.0:2055", binary=true
