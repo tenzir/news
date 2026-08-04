@@ -103,6 +103,24 @@ class ChangelogHelpersTest(unittest.TestCase):
             [f"{config}: id must be lowercase kebab-case, got 'Tenzir_Node'"],
         )
 
+    def test_campaign_identities_reject_missing_or_non_mapping_config(self) -> None:
+        cases = {
+            "missing": (None, "changelog config is missing"),
+            "empty": ("", "changelog config must be a mapping"),
+            "false": ("false\n", "changelog config must be a mapping"),
+            "list": ("[]\n", "changelog config must be a mapping"),
+        }
+        for project_name, (contents, message) in cases.items():
+            with self.subTest(project=project_name):
+                project = self.root / project_name
+                config = project / "changelog/config.yaml"
+                if contents is not None:
+                    self.write(f"{project_name}/changelog/config.yaml", contents)
+                self.assertEqual(
+                    campaign_identity_errors([project]),
+                    [f"{config}: {message}"],
+                )
+
     def test_campaign_identities_reject_invalid_entry_slug(self) -> None:
         self.write("tenzir/changelog/config.yaml", CONFIG)
         entry = self.write("tenzir/changelog/unreleased/add-to_clickhouse.md", ENTRY)

@@ -67,24 +67,25 @@ def campaign_identity_errors(projects: list[Path]) -> list[str]:
     for project in projects:
         changelog = project / "changelog"
         config_path = changelog / "config.yaml"
-        config: object = {}
-        if config_path.exists():
+        if not config_path.exists():
+            errors.append(f"{config_path}: changelog config is missing")
+        else:
             try:
-                config = yaml.safe_load(config_path.read_text()) or {}
+                config = yaml.safe_load(config_path.read_text())
             except yaml.YAMLError as error:
                 errors.append(f"{config_path}: invalid YAML: {error}")
-                config = None
-        if not isinstance(config, dict):
-            errors.append(f"{config_path}: changelog config must be a mapping")
-        else:
-            campaign_id = config.get("id", project.name)
-            if not isinstance(campaign_id, str) or not KEBAB_CASE.fullmatch(
-                campaign_id
-            ):
-                errors.append(
-                    f"{config_path}: id must be lowercase kebab-case, "
-                    f"got {campaign_id!r}"
-                )
+            else:
+                if not isinstance(config, dict):
+                    errors.append(f"{config_path}: changelog config must be a mapping")
+                else:
+                    campaign_id = config.get("id", project.name)
+                    if not isinstance(campaign_id, str) or not KEBAB_CASE.fullmatch(
+                        campaign_id
+                    ):
+                        errors.append(
+                            f"{config_path}: id must be lowercase kebab-case, "
+                            f"got {campaign_id!r}"
+                        )
         for entry in sorted((changelog / "unreleased").glob("*.md")):
             if not KEBAB_CASE.fullmatch(entry.stem):
                 errors.append(f"{entry}: filename stem must be lowercase kebab-case")
