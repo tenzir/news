@@ -10,8 +10,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from changelog import get_config, get_config_for_entry, get_repository, load_entry
-
+from changelog import (
+    campaign_identity_errors,
+    get_config,
+    get_config_for_entry,
+    get_repository,
+    load_entry,
+)
 
 CONFIG = """\
 id: tenzir
@@ -84,6 +89,37 @@ class ChangelogHelpersTest(unittest.TestCase):
         self.assertEqual(data["authors"], ["somebody"])
         self.assertEqual(data["prs"], [6445])
         self.assertIn("re-batches", data["body"])
+
+    def test_campaign_identities_accept_kebab_case(self) -> None:
+        self.write("tenzir/changelog/config.yaml", CONFIG)
+        self.write("tenzir/changelog/unreleased/add-clickhouse.md", ENTRY)
+        self.assertEqual(campaign_identity_errors([self.root / "tenzir"]), [])
+
+    def test_campaign_identities_reject_invalid_config_id(self) -> None:
+        config = self.write("tenzir/changelog/config.yaml", "id: Tenzir_Node\n")
+        errors = campaign_identity_errors([self.root / "tenzir"])
+        self.assertEqual(
+            errors,
+            [f"{config}: id must be lowercase kebab-case, got 'Tenzir_Node'"],
+        )
+
+    def test_campaign_identities_reject_invalid_entry_slug(self) -> None:
+        self.write("tenzir/changelog/config.yaml", CONFIG)
+        entry = self.write("tenzir/changelog/unreleased/add-to_clickhouse.md", ENTRY)
+        errors = campaign_identity_errors([self.root / "tenzir"])
+        self.assertEqual(
+            errors,
+            [f"{entry}: filename stem must be lowercase kebab-case"],
+        )
+
+    def test_campaign_identities_validate_project_fallback(self) -> None:
+        self.write("Not_Kebab/changelog/config.yaml", "name: Example\n")
+        config = self.root / "Not_Kebab/changelog/config.yaml"
+        errors = campaign_identity_errors([self.root / "Not_Kebab"])
+        self.assertEqual(
+            errors,
+            [f"{config}: id must be lowercase kebab-case, got 'Not_Kebab'"],
+        )
 
 
 if __name__ == "__main__":
