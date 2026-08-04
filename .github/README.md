@@ -10,7 +10,7 @@ synchronization, notifications, and deployment automation in `tenzir/news`.
 | [`actions/sync/action.yaml`](actions/sync/action.yaml) | Triggers this repository's synchronization workflow from a source repository. |
 | [`workflows/sync.yaml`](workflows/sync.yaml) | Serializes changelog synchronization and sends Discord notifications. |
 | [`workflows/changelog-x-relay.yaml`](workflows/changelog-x-relay.yaml) | Relays newly added changelog entries to the workflows Worker for X drafting. |
-| [`workflows/changelog-check.yaml`](workflows/changelog-check.yaml) | Tests the shared changelog helpers on pull requests. |
+| [`workflows/changelog-check.yaml`](workflows/changelog-check.yaml) | Tests the shared changelog helpers and campaign identities on pull requests. |
 | [`workflows/rebuild-content.yaml`](workflows/rebuild-content.yaml) | Requests a `tenzir/content` rebuild after a push to `main`. |
 | [`scripts/`](scripts/) | Contains deterministic parsing and notification helpers. |
 
@@ -31,9 +31,15 @@ Each run performs these steps:
 1. Validate that the source exists in the `tenzir` organization.
 2. Clone the source repository.
 3. Synchronize the primary changelog and configured module changelogs.
-4. Commit and push the result to `main`.
-5. Notify configured destinations about new entries and releases.
-6. Dispatch a rebuild request to `tenzir/content`.
+4. Validate campaign identities used by the X publisher.
+5. Commit and push the result to `main`.
+6. Notify configured destinations about new entries and releases.
+7. Dispatch a rebuild request to `tenzir/content`.
+
+Top-level changelog config IDs and unreleased entry filename stems must use
+lowercase kebab-case. Synchronization fails before committing an invalid
+identity, so publication cannot be the first place an invalid campaign is
+detected.
 
 The workflow uses these organization or repository settings:
 
@@ -203,6 +209,8 @@ Run these checks before committing changes to the notification scripts:
 ```sh
 uv run --with-requirements .github/scripts/requirements.txt \
   python .github/scripts/test_changelog.py
+uv run --with-requirements .github/scripts/requirements.txt \
+  python .github/scripts/changelog.py
 uvx ruff check .github/scripts
 uvx ruff format --check .github/scripts
 git diff --check

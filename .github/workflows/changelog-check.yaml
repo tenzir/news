@@ -8,6 +8,8 @@ on:
       - ".github/scripts/test_changelog.py"
       - ".github/scripts/requirements.txt"
       - ".github/workflows/changelog-check.yaml"
+      - "*/changelog/config.yaml"
+      - "*/changelog/unreleased/*.md"
 
 permissions:
   contents: read
@@ -32,3 +34,6 @@ jobs:
 
       - name: Test changelog helpers
         run: python .github/scripts/test_changelog.py
+
+      - name: Validate campaign identities
+        run: python .github/scripts/changelog.py
