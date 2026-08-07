@@ -9,6 +9,12 @@ from typing import TypedDict
 import yaml
 
 KEBAB_CASE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+BLOCK_START = re.compile(
+    r"^ {0,3}(?:#{1,6}\s|[-+*]\s|\d+[.)]\s|>\s?|`{3,}|~{3,}|"
+    r"(?:-{3,}|\*{3,}|_{3,})\s*$)"
+)
+BLOCK_END = re.compile(r"^ {0,3}(?:#{1,6}\s|(?:-{3,}|\*{3,}|_{3,})\s*$)")
 
 
 class EntryData(TypedDict):
@@ -59,6 +65,52 @@ def load_entry(file_path: Path) -> EntryData:
         "prs": list(entry.metadata.get("prs", [])),
         "body": entry.body,
     }
+
+
+def unfold_soft_breaks(text: str) -> str:
+    """Replace Markdown soft line breaks with spaces for Discord embeds.
+
+    Discord can drop a soft break next to an inline Markdown element instead of
+    rendering it as a space. Preserve block boundaries, hard breaks, tables,
+    and fenced or indented code while joining wrapped prose and list items.
+    """
+    lines = text.splitlines()
+    if not lines:
+        return text
+    trailing_newline = text.endswith("\n")
+    unfolded: list[str] = []
+    current = lines[0]
+    fence_marker: str | None = None
+    for next_line in lines[1:]:
+        fence = FENCE.match(current)
+        was_in_fence = fence_marker is not None
+        if fence:
+            marker = fence.group(1)
+            if fence_marker is None:
+                fence_marker = marker[0]
+            elif marker[0] == fence_marker:
+                fence_marker = None
+        preserve = (
+            was_in_fence
+            or fence is not None
+            or not current.strip()
+            or not next_line.strip()
+            or current.endswith(("  ", "\\"))
+            or BLOCK_END.match(current) is not None
+            or BLOCK_START.match(next_line) is not None
+            or current.startswith("    ")
+            or next_line.startswith("    ")
+            or current.lstrip().startswith("|")
+            or next_line.lstrip().startswith("|")
+        )
+        if preserve:
+            unfolded.append(current)
+            current = next_line
+        else:
+            current = f"{current.rstrip()} {next_line.lstrip()}"
+    unfolded.append(current)
+    result = "\n".join(unfolded)
+    return result + "\n" if trailing_newline else result
 
 
 def campaign_identity_errors(projects: list[Path]) -> list[str]:

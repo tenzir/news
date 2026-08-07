@@ -16,6 +16,7 @@ from changelog import (
     get_config_for_entry,
     get_repository,
     load_entry,
+    unfold_soft_breaks,
 )
 
 CONFIG = """\
@@ -89,6 +90,33 @@ class ChangelogHelpersTest(unittest.TestCase):
         self.assertEqual(data["authors"], ["somebody"])
         self.assertEqual(data["prs"], [6445])
         self.assertIn("re-batches", data["body"])
+
+    def test_unfold_soft_breaks_joins_wrapped_markdown(self) -> None:
+        markdown = """\
+Three new functions close the
+rendering gap:
+
+- `autocorrelation(xs)` computes normalized
+  [autocorrelation](https://example.com)
+  coefficients.
+- `periodogram(xs)` computes spectral power.
+"""
+        self.assertEqual(
+            unfold_soft_breaks(markdown),
+            "Three new functions close the rendering gap:\n\n"
+            "- `autocorrelation(xs)` computes normalized "
+            "[autocorrelation](https://example.com) coefficients.\n"
+            "- `periodogram(xs)` computes spectral power.\n",
+        )
+
+    def test_unfold_soft_breaks_preserves_markdown_blocks(self) -> None:
+        markdown = (
+            "### Example\n\n"
+            "First line  \nsecond line\n\n"
+            "| A | B |\n| - | - |\n\n"
+            "```tql\nfrom {x: 1}\n\nwhere x == 1\n```\n"
+        )
+        self.assertEqual(unfold_soft_breaks(markdown), markdown)
 
     def test_campaign_identities_accept_kebab_case(self) -> None:
         self.write("tenzir/changelog/config.yaml", CONFIG)

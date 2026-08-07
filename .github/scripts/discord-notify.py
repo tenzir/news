@@ -7,7 +7,12 @@ from pathlib import Path
 import click
 from discord_webhook import DiscordEmbed, DiscordWebhook
 
-from changelog import get_config_for_entry, get_repository, load_entry
+from changelog import (
+    get_config_for_entry,
+    get_repository,
+    load_entry,
+    unfold_soft_breaks,
+)
 
 
 # Type configuration: emoji, label, and embed color
@@ -69,7 +74,7 @@ def entry(project: str, file: Path, webhook_url: str):
         url = f"https://github.com/{repo}"
 
     # Build description
-    description = truncate(data["body"], 3800)
+    description = truncate(unfold_soft_breaks(data["body"]), 3800)
 
     # Add metadata (authors and prs are simple lists after tenzir-ship normalization)
     meta_parts = []
@@ -118,6 +123,7 @@ def release(project: str, version: str, notes_file: Path, webhook_url: str):
     notes = notes_file.read_text()
     notes = strip_leading_heading(notes)
     notes = demote_headers(notes)
+    notes = unfold_soft_breaks(notes)
     notes = truncate(notes, 3800)
 
     url = f"https://github.com/{repo}/releases/tag/{version}"
