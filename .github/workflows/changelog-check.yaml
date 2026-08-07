@@ -8,6 +8,7 @@ on:
       - ".github/scripts/test_changelog.py"
       - ".github/scripts/requirements.txt"
       - ".github/workflows/changelog-check.yaml"
+      - ".github/workflows/changelog-x-relay.yaml"
       - "*/changelog/config.yaml"
       - "*/changelog/unreleased/*.md"
 

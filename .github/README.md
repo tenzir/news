@@ -9,7 +9,7 @@ synchronization, notifications, and deployment automation in `tenzir/news`.
 | --- | --- |
 | [`actions/sync/action.yaml`](actions/sync/action.yaml) | Triggers this repository's synchronization workflow from a source repository. |
 | [`workflows/sync.yaml`](workflows/sync.yaml) | Serializes changelog synchronization and sends Discord notifications. |
-| [`workflows/changelog-x-relay.yaml`](workflows/changelog-x-relay.yaml) | Relays newly added changelog entries to the workflows Worker for X drafting. |
+| [`workflows/changelog-x-relay.yaml`](workflows/changelog-x-relay.yaml) | Relays newly added stable releases to the workflows Worker for X drafting. |
 | [`workflows/changelog-check.yaml`](workflows/changelog-check.yaml) | Tests the shared changelog helpers and campaign identities on pull requests. |
 | [`workflows/rebuild-content.yaml`](workflows/rebuild-content.yaml) | Requests a `tenzir/content` rebuild after a push to `main`. |
 | [`scripts/`](scripts/) | Contains deterministic parsing and notification helpers. |
@@ -168,18 +168,24 @@ Notification failures don't fail the synchronization run.
 
 ### X automation
 
-Every push to `main` runs `workflows/changelog-x-relay.yaml`, which collects
-newly added feature entries matching `PROJECT/changelog/unreleased/SLUG.md`
-and relays the commit SHA and entry paths to the `workflows` Cloudflare Worker
-in [`tenzir/infra`](https://github.com/tenzir/infra) (`website/workflows/`).
-Everything else — fetching and parsing the entries, drafting posts with
-GPT-5.6 Sol through an AI Gateway, deterministic validation (weighted
-280-character limit, canonical changelog URL exactly once in the final post,
-no mentions or em dashes, thread shape matching the entry content), and
-OAuth 1.0a publication to `@tenzir_company` — happens in that Worker as a
-durable Cloudflare Workflow. See the Worker's README for the full design,
-including the Durable Object ledger that guarantees a crash can never publish
-a duplicate post.
+Every push to `main` runs `workflows/changelog-x-relay.yaml`. The workflow
+collects every added manifest matching
+`PROJECT/changelog/releases/VERSION/manifest.yaml`. Automatic posts are
+limited to the `tenzir` (Tenzir Node) and `platform` projects. The relay skips
+prereleases and refuses pushes containing more than one eligible release.
+This prevents repository onboarding and historical backfills from publishing
+stale release bursts; dispatch the intended URL manually after inspecting such
+a push.
+
+For every eligible release, the relay sends the permanent
+`https://tenzir.com/changelog/ID/VERSION/` URL to the `workflows` Cloudflare
+Worker in
+[`tenzir/infra`](https://github.com/tenzir/infra) (`website/workflows/`). The
+Worker fetches the page's public Markdown representation, drafts one
+Premium-length post when the release contains at least one feature, validates
+the copy and URL placement, and publishes to `@tenzir_company`. A Durable
+Object ledger keyed by the permanent URL prevents duplicate posts. See the
+Worker's README for the complete publication and recovery design.
 
 This repository needs one Actions secret:
 
@@ -187,11 +193,12 @@ This repository needs one Actions secret:
 | --- | --- |
 | `WORKFLOWS_NEWS_TOKEN` | Authenticates the relay against the Worker. Mirrors the `workflows-news-token` value in the Cloudflare Secrets Store. |
 
-To recover an ambiguous write (the Worker refused to publish because a prior
-write's outcome is unknown), delete the entire partial thread from
-`@tenzir_company`, including any post whose creation was ambiguous. Then
-manually dispatch the relay for the same entry with **Retry after deleting the
-entire partial X thread** enabled.
+Manual dispatches take one canonical stable release URL. They default to a dry
+run, which drafts and validates the post without accessing the ledger or X. To
+recover an ambiguous write, inspect `@tenzir_company` and delete the uncertain
+post when present. Then manually dispatch the same URL with
+**Draft and validate without publishing** cleared and **Retry after deleting
+the uncertain X post** enabled.
 
 ## Website rebuilds
 
