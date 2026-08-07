@@ -1,9 +1,7 @@
 name: Relay stable changelog releases to X drafting
 
-# Thin shim: reports newly added stable release manifests to the `workflows`
-# Cloudflare Worker (tenzir/infra:/website/workflows). The Worker fetches the
-# pinned release, drafts one post, waits for its permanent page, and publishes
-# through a release-scoped ledger. This workflow only discovers and relays.
+# Sends each newly added stable release URL to the workflows Worker. The
+# Worker fetches the page's Markdown representation and publishes one X post.
 
 on:
   push:
@@ -12,12 +10,8 @@ on:
       - "*/changelog/releases/*/manifest.yaml"
   workflow_dispatch:
     inputs:
-      project:
-        description: Top-level changelog project
-        required: true
-        type: string
-      version:
-        description: Stable release version in vX.Y.Z form
+      url:
+        description: Canonical stable release URL
         required: true
         type: string
       dry_run:
@@ -55,69 +49,57 @@ jobs:
       - name: Collect stable releases
         id: collect
         env:
-          EVENT_NAME: ${{ github.event_name }}
           BEFORE: ${{ github.event.before || '' }}
           AFTER: ${{ github.event.after || github.sha }}
-          PROJECT: ${{ github.event.inputs.project || '' }}
-          VERSION: ${{ github.event.inputs.version || '' }}
-          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
-          RETRY_AMBIGUOUS: ${{ github.event.inputs.retry_ambiguous || 'false' }}
+          URL: ${{ github.event.inputs.url || '' }}
         run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            python .github/scripts/changelog_x_relay.py manual \
-              --after "$AFTER" \
-              --project "$PROJECT" \
-              --version "$VERSION" \
-              --dry-run "$DRY_RUN" \
-              --retry-ambiguous "$RETRY_AMBIGUOUS" > /tmp/payloads.jsonl
+          if [ -n "$URL" ]; then
+            printf '%s\n' "$URL" > /tmp/urls
           else
-            python .github/scripts/changelog_x_relay.py push \
-              --before "$BEFORE" \
-              --after "$AFTER" > /tmp/payloads.jsonl
+            before="$BEFORE"
+            if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+              before="$(git hash-object -t tree /dev/null)"
+            fi
+            git diff --name-only --diff-filter=A "$before" "$AFTER" -- \
+              ':(glob)*/changelog/releases/*/manifest.yaml' |
+              while IFS= read -r manifest; do
+                project="${manifest%%/*}"
+                version="${manifest%/manifest.yaml}"
+                version="${version##*/}"
+                if [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                  id="$(awk '$1 == "id:" {print $2; exit}' \
+                    "$project/changelog/config.yaml")"
+                  printf 'https://tenzir.com/changelog/%s/%s/\n' \
+                    "${id:-$project}" "$version"
+                fi
+              done > /tmp/urls
           fi
-          if [ ! -s /tmp/payloads.jsonl ]; then
+          if [ ! -s /tmp/urls ]; then
             echo "No newly added stable releases; nothing to relay."
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "skip=false" >> "$GITHUB_OUTPUT"
-          echo "count=$(wc -l < /tmp/payloads.jsonl | tr -d ' ')" >> "$GITHUB_OUTPUT"
-          cat /tmp/payloads.jsonl
+          cat /tmp/urls
 
-      - name: Dispatch release drafting workflows
+      - name: Dispatch release drafting workflow
         if: steps.collect.outputs.skip == 'false'
         env:
           WORKFLOWS_NEWS_TOKEN: ${{ secrets.WORKFLOWS_NEWS_TOKEN }}
         run: |
-          {
-            echo "## Changelog X relay"
-            echo
-            echo "Dispatched ${{ steps.collect.outputs.count }} stable release(s):"
-          } >> "$GITHUB_STEP_SUMMARY"
-          failed=0
-          while IFS= read -r payload; do
-            project="$(jq -r .project <<< "$payload")"
-            version="$(jq -r .version <<< "$payload")"
-            if ! response="$(curl --fail-with-body --silent --show-error \
+          while IFS= read -r url; do
+            payload="$(jq --null-input --compact-output \
+              --arg url "$url" \
+              --argjson force "${{ github.event_name == 'workflow_dispatch' }}" \
+              --argjson dryRun "${{ github.event.inputs.dry_run || 'false' }}" \
+              --argjson retry "${{ github.event.inputs.retry_ambiguous || 'false' }}" \
+              '{url: $url, force: $force, dryRun: $dryRun, retryAmbiguous: $retry}')"
+            response="$(curl --fail-with-body --silent --show-error \
               -X POST https://workflows.tenzir.workers.dev/changelog/x \
               -H "Authorization: Bearer $WORKFLOWS_NEWS_TOKEN" \
               -H "Content-Type: application/json" \
-              --data "$payload")"; then
-              printf -- '- `%s/%s`: dispatch failed\n' "$project" "$version" \
-                >> "$GITHUB_STEP_SUMMARY"
-              failed=1
-              continue
-            fi
+              --data "$payload")"
             echo "$response"
-            if ! id="$(jq -er .id <<< "$response")"; then
-              printf -- '- `%s/%s`: invalid Worker response\n' \
-                "$project" "$version" >> "$GITHUB_STEP_SUMMARY"
-              failed=1
-              continue
-            fi
-            printf -- '- `%s/%s`: `%s`\n' "$project" "$version" "$id" \
+            printf -- '- <%s>: `%s`\n' "$url" "$(jq -r .id <<< "$response")" \
               >> "$GITHUB_STEP_SUMMARY"
-            printf '  `wrangler workflows instances describe changelog-x %s`\n' \
-              "$id" >> "$GITHUB_STEP_SUMMARY"
-          done < /tmp/payloads.jsonl
-          exit "$failed"
+          done < /tmp/urls

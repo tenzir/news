@@ -171,18 +171,13 @@ Notification failures don't fail the synchronization run.
 Every push to `main` runs `workflows/changelog-x-relay.yaml`. The workflow
 collects every added manifest matching
 `PROJECT/changelog/releases/VERSION/manifest.yaml`, skips prerelease versions,
-and enumerates the release's Markdown entries at the pinned commit. It sends
-one request per stable release to the `workflows` Cloudflare Worker in
-[`tenzir/infra`](https://github.com/tenzir/infra) (`website/workflows/`). A
-single push can therefore dispatch several independent releases.
-
-The Worker fetches and parses each release, skips releases without features,
-and gives GPT-5.6 Sol the manifest title and introduction plus every feature
-title and complete body. It drafts one Premium-length post, waits for the
-permanent `https://tenzir.com/changelog/ID/VERSION/` page, validates the copy
-and URL placement, and publishes to `@tenzir_company`. A Durable Object ledger
-keyed by the project and version prevents duplicate posts even when release
-contents change. See the Worker's README for the complete publication and
+and sends each permanent `https://tenzir.com/changelog/ID/VERSION/` URL to the
+`workflows` Cloudflare Worker in
+[`tenzir/infra`](https://github.com/tenzir/infra) (`website/workflows/`). The
+Worker fetches the page's public Markdown representation, drafts one
+Premium-length post, validates the copy and URL placement, and publishes to
+`@tenzir_company`. A Durable Object ledger keyed by the permanent URL prevents
+duplicate posts. See the Worker's README for the complete publication and
 recovery design.
 
 This repository needs one Actions secret:
@@ -191,10 +186,10 @@ This repository needs one Actions secret:
 | --- | --- |
 | `WORKFLOWS_NEWS_TOKEN` | Authenticates the relay against the Worker. Mirrors the `workflows-news-token` value in the Cloudflare Secrets Store. |
 
-Manual dispatches require a project and a stable `vX.Y.Z` version. They default
-to a dry run, which drafts and validates the post without accessing the ledger
-or X. To recover an ambiguous write, inspect `@tenzir_company` and delete the
-uncertain post when present. Then manually dispatch the same release with
+Manual dispatches take one canonical stable release URL. They default to a dry
+run, which drafts and validates the post without accessing the ledger or X. To
+recover an ambiguous write, inspect `@tenzir_company` and delete the uncertain
+post when present. Then manually dispatch the same URL with
 **Draft and validate without publishing** cleared and **Retry after deleting
 the uncertain X post** enabled.
 
@@ -213,7 +208,7 @@ Run these checks before committing changes to the notification scripts:
 
 ```sh
 uv run --with-requirements .github/scripts/requirements.txt \
-  python -m unittest discover -s .github/scripts -p 'test_*.py'
+  python .github/scripts/test_changelog.py
 uv run --with-requirements .github/scripts/requirements.txt \
   python .github/scripts/changelog.py
 uvx ruff check .github/scripts
