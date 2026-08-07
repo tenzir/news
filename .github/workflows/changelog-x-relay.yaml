@@ -1,7 +1,8 @@
 name: Relay stable changelog releases to X drafting
 
-# Sends each newly added stable release URL to the workflows Worker. The
-# Worker fetches the page's Markdown representation and publishes one X post.
+# Sends one eligible stable release URL to the workflows Worker. Automatic
+# posts are limited to the tenzir and platform projects, and pushes containing
+# multiple eligible releases require manual dispatch.
 
 on:
   push:
@@ -60,19 +61,35 @@ jobs:
             if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
               before="$(git hash-object -t tree /dev/null)"
             fi
-            git diff --name-only --diff-filter=A "$before" "$AFTER" -- \
+            git diff --name-only --diff-filter=AR "$before" "$AFTER" -- \
               ':(glob)*/changelog/releases/*/manifest.yaml' |
               while IFS= read -r manifest; do
                 project="${manifest%%/*}"
+                case "$project" in
+                  tenzir|platform) ;;
+                  *) continue ;;
+                esac
                 version="${manifest%/manifest.yaml}"
                 version="${version##*/}"
                 if [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                  id="$(awk '$1 == "id:" {print $2; exit}' \
+                  id="$(awk '$1 == "id:" { \
+                    value = $2; gsub(/"/, "", value); \
+                    gsub(/\047/, "", value); print value; exit \
+                  }' \
                     "$project/changelog/config.yaml")"
-                  printf 'https://tenzir.com/changelog/%s/%s/\n' \
-                    "${id:-$project}" "$version"
+                  id="${id:-$project}"
+                  if [[ ! "$id" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+                    echo "Invalid changelog id for $project: $id" >&2
+                    exit 1
+                  fi
+                  printf 'https://tenzir.com/changelog/%s/%s/\n' "$id" "$version"
                 fi
               done > /tmp/urls
+            count="$(wc -l < /tmp/urls | tr -d ' ')"
+            if [ "$count" -gt 1 ]; then
+              echo "::error::Refusing to dispatch $count releases from one push; dispatch the intended URL manually."
+              exit 1
+            fi
           fi
           if [ ! -s /tmp/urls ]; then
             echo "No newly added stable releases; nothing to relay."
