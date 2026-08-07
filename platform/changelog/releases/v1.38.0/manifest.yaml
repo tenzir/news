@@ -1,0 +1,11 @@
+created: 2026-08-07
+title: Opt-in telemetry collection
+intro: >-
+  This release makes telemetry collection opt-in: telemetry is only collected for
+  users who have explicitly consented via their Account page. The pipeline list search
+  box now also matches on pipeline ID, so you can paste an ID to jump straight to
+  a pipeline. Additionally, this release fixes two MFA-related UI errors and updates
+  all container images to resolve known vulnerabilities in their dependencies.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.37.3
