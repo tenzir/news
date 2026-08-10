@@ -1,4 +1,4 @@
-This release adds advanced cadence and periodicity analysis for security telemetry, including exponentially weighted statistics and automatic NetFlow detection. It also expands ClickHouse JSON support and improves OCSF interoperability.
+This release brings research-grade beacon and anomaly detection into TQL with cadence analysis, periodicity detection, and exponentially weighted statistics. It also improves automatic NetFlow ingestion and ClickHouse JSON interoperability.
 
 ## 🚀 Features
 
