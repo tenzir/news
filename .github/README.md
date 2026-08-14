@@ -88,6 +88,11 @@ The action derives the following defaults from the source repository:
 - `target`: The project name and target directory in `tenzir/news`.
 - `path`: `changelog`.
 
+By default, the workflow synchronizes the source repository's current `HEAD`.
+Set `source_ref` to a full commit SHA when the caller must synchronize the exact
+revision it inspected. Pinning the revision prevents a later source push from
+changing what the queued sync imports.
+
 Override the target when the synchronized directory and source repository have
 different names:
 

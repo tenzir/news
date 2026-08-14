@@ -12,6 +12,10 @@ inputs:
       Repository to clone the changelog from (defaults to the calling repo)
     required: false
     default: ${{ github.event.repository.name }}
+  source_ref:
+    description: Full commit SHA to synchronize (defaults to the source's HEAD)
+    required: false
+    default: ""
   target:
     description: Target directory name in news repo (defaults to project name)
     required: false
@@ -53,6 +57,7 @@ runs:
           --ref "${{ inputs.ref }}" \
           --field project="${{ inputs.project }}" \
           --field source_repo="${{ inputs.source_repo }}" \
+          --field source_ref="${{ inputs.source_ref }}" \
           --field target="${{ inputs.target }}" \
           --field path="${{ inputs.path }}" \
           --field extra_paths="${{ inputs.extra_paths }}" \
