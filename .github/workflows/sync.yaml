@@ -14,6 +14,11 @@ on:
         required: false
         default: ""
         type: string
+      source_ref:
+        description: "Full source commit SHA to synchronize (defaults to HEAD)"
+        required: false
+        default: ""
+        type: string
       target:
         description: "Target directory name (defaults to project name)"
         required: false
@@ -83,10 +88,17 @@ jobs:
         id: clone
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SOURCE_REF: ${{ inputs.source_ref }}
         run: |
-          git clone --depth 1 \
-            "https://x-access-token:${GH_TOKEN}@github.com/tenzir/${{ steps.resolve.outputs.repo }}.git" \
-            /tmp/source
+          if [[ -n "$SOURCE_REF" && ! "$SOURCE_REF" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::source_ref must be a full commit SHA"
+            exit 1
+          fi
+          git init --quiet /tmp/source
+          git -C /tmp/source remote add origin \
+            "https://x-access-token:${GH_TOKEN}@github.com/tenzir/${{ steps.resolve.outputs.repo }}.git"
+          git -C /tmp/source fetch --depth 1 --quiet origin "${SOURCE_REF:-HEAD}"
+          git -C /tmp/source checkout --detach --quiet FETCH_HEAD
           echo "sha=$(git -C /tmp/source rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Snapshot existing files
