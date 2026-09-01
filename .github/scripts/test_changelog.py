@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from changelog import (
     campaign_identity_errors,
+    get_changelog_entry_url,
     get_config,
     get_config_for_entry,
     get_repository,
@@ -81,6 +82,22 @@ class ChangelogHelpersTest(unittest.TestCase):
             "tenzir/tenzir",
         )
         self.assertEqual(get_repository("mcp", {}), "tenzir/mcp")
+
+    def test_changelog_entry_url_uses_config_id_and_file_slug(self) -> None:
+        entry = self.write(
+            "tenzir/changelog/unreleased/read-and-parse-raw-avro.md", ENTRY
+        )
+        self.assertEqual(
+            get_changelog_entry_url("tenzir", entry, {"id": "tenzir"}),
+            "https://tenzir.com/changelog/tenzir/unreleased/#read-and-parse-raw-avro",
+        )
+
+    def test_changelog_entry_url_falls_back_to_project(self) -> None:
+        entry = self.write("mcp/changelog/unreleased/add-tool.md", ENTRY)
+        self.assertEqual(
+            get_changelog_entry_url("mcp", entry, {}),
+            "https://tenzir.com/changelog/mcp/unreleased/#add-tool",
+        )
 
     def test_load_entry_normalizes_fields(self) -> None:
         entry = self.write("tenzir/changelog/unreleased/foo.md", ENTRY)

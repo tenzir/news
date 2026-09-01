@@ -5,15 +5,14 @@ import re
 from pathlib import Path
 
 import click
-from discord_webhook import DiscordEmbed, DiscordWebhook
-
 from changelog import (
+    get_changelog_entry_url,
     get_config_for_entry,
     get_repository,
     load_entry,
     unfold_soft_breaks,
 )
-
+from discord_webhook import DiscordEmbed, DiscordWebhook
 
 # Type configuration: emoji, label, and embed color
 TYPE_CONFIG = {
@@ -67,11 +66,9 @@ def entry(project: str, file: Path, webhook_url: str):
 
     emoji, label, color = TYPE_CONFIG.get(data["type"], DEFAULT_TYPE)
 
-    # Build URL - prefer PR link, fall back to repo
-    if data["prs"]:
-        url = f"https://github.com/{repo}/pull/{data['prs'][0]}"
-    else:
-        url = f"https://github.com/{repo}"
+    # Link the embed title to the entry on the public changelog. PR links remain
+    # available in the metadata below.
+    url = get_changelog_entry_url(project, file, config)
 
     # Build description
     description = truncate(unfold_soft_breaks(data["body"]), 3800)
