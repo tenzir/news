@@ -53,6 +53,12 @@ def get_repository(project: str, config: dict | None = None) -> str:
     return config.get("repository", f"tenzir/{project}")
 
 
+def get_changelog_entry_url(project: str, file_path: Path, config: dict) -> str:
+    """Return the canonical website URL for an unreleased changelog entry."""
+    project_id = config.get("id", project)
+    return f"https://tenzir.com/changelog/{project_id}/unreleased/#{file_path.stem}"
+
+
 def load_entry(file_path: Path) -> EntryData:
     """Load and normalize a changelog entry through tenzir-ship."""
     from tenzir_ship.entries import read_entry
