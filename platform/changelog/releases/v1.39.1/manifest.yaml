@@ -1,0 +1,9 @@
+created: 2026-09-08
+title: Explorer file upload fix for Tenzir Node v6
+intro: >-
+  This release fixes an issue that broke file uploads in the Explorer on Tenzir Node
+  v6. It also updates the platform user interface container images to clear vulnerabilities
+  found in the weekly container scan.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.39.0
