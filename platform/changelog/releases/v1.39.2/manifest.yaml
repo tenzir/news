@@ -1,0 +1,9 @@
+created: 2026-09-10
+title: On-demand schema loading
+intro: >-
+  The Explorer now loads stored schema names and event counts on request, and fetches
+  field definitions when you first expand a schema. It opens the Results tab by default
+  and reuses loaded definitions until you refresh.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.39.1
