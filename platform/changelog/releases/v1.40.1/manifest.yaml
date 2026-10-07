@@ -1,0 +1,9 @@
+created: 2026-10-07
+title: Explorer scrolling and error details
+intro: >-
+  This release restores scrolling through all schemas in the Explorer's Results tab
+  when the list exceeds the pane height. Errors about invalid JSON responses from
+  a node now also name the exact reason, such as a duplicate key and its position.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.40.0
