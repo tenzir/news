@@ -1,0 +1,9 @@
+created: 2026-10-09
+title: Explorer support for the new data model
+intro: >-
+  This release adapts the Explorer to the new data model in Tenzir Node 6.20. The
+  Explorer now groups events by schema name and shows accurate per-name counts, even
+  when field sets differ.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.40.1
