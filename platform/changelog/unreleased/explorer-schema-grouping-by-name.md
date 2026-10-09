@@ -10,4 +10,4 @@ Explorer now shows events with the same schema name together, even when their fi
 
 Schema-filtered Stream views keep their selection when added to a dashboard, and IP and subnet columns sort by address rather than spelling.
 
-Nodes without the `serve-name-and-type` feature can still run pipelines and view their events in Stream view. Upgrade to Tenzir Node 6.19 or later for schema browsing, tables, and charts.
+Nodes without the `serve-name-and-type` feature can still run pipelines and view their events in Stream view. Upgrade to Tenzir Node 6.20 or later for schema browsing, tables, and charts.
