@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """Discord notification script for changelog entries and releases."""
 
-import re
+import json
 from pathlib import Path
 
 import click
 from changelog import (
     get_changelog_entry_url,
+    get_changelog_release_url,
+    get_config,
     get_config_for_entry,
     get_repository,
     load_entry,
+    summarize_release,
     unfold_soft_breaks,
 )
 from discord_webhook import DiscordEmbed, DiscordWebhook
@@ -23,23 +26,6 @@ TYPE_CONFIG = {
     "fix": ("🐞", "Bug Fix", 0x2ECC71),
 }
 DEFAULT_TYPE = ("📝", "Update", 0x58ACFF)
-
-
-def strip_leading_heading(text: str) -> str:
-    """Remove the leading # heading from text (embed title already serves this purpose)."""
-    lines = text.lstrip().split("\n", 1)
-    if lines and lines[0].startswith("# "):
-        return lines[1].lstrip() if len(lines) > 1 else ""
-    return text
-
-
-def demote_headers(text: str) -> str:
-    """Demote ## headers to ### for better visual hierarchy in Discord.
-
-    Discord renders ## headers very prominently, often larger than the embed
-    title. Demoting to ### keeps section structure while respecting hierarchy.
-    """
-    return re.sub(r"^## ", "### ", text, flags=re.MULTILINE)
 
 
 def truncate(text: str, max_length: int = 4000) -> str:
@@ -108,27 +94,26 @@ def entry(project: str, file: Path, webhook_url: str):
 
 @cli.command()
 @click.argument("project")
-@click.argument("version")
-@click.argument("notes_file", type=click.Path(exists=True, path_type=Path))
+@click.argument("release_file", type=click.Path(exists=True, path_type=Path))
 @click.argument("webhook_url")
-def release(project: str, version: str, notes_file: Path, webhook_url: str):
-    """Send a notification for a release."""
-    config = get_config_for_entry(notes_file)
+def release(project: str, release_file: Path, webhook_url: str):
+    """Send a notification for a release.
+
+    RELEASE_FILE is the output of `tenzir-ship show VERSION --release --json`.
+    The notification lists entry titles only and links to the full notes.
+    """
+    config = get_config(project)
     repo = get_repository(project, config)
-    title = config.get("name", project)
+    name = config.get("name", project)
 
-    notes = notes_file.read_text()
-    notes = strip_leading_heading(notes)
-    notes = demote_headers(notes)
-    notes = unfold_soft_breaks(notes)
-    notes = truncate(notes, 3800)
-
-    url = f"https://github.com/{repo}/releases/tag/{version}"
+    (data,) = json.loads(release_file.read_text())
+    version = data["version"]
+    url = get_changelog_release_url(project, version, config)
 
     webhook = DiscordWebhook(url=webhook_url)
     embed = DiscordEmbed(
-        title=f"{title} {version}",
-        description=notes,
+        title=f"{name} {version}",
+        description=summarize_release(data, url),
         color=0x2ECC71,  # Green
         url=url,
     )

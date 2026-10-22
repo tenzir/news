@@ -200,9 +200,10 @@ jobs:
             [[ -z "$release_dir" ]] && continue
             version=$(basename "$release_dir")
             echo "Notifying Discord about new release: ${{ steps.resolve.outputs.dir }} $version"
-            # Generate notes with explicit links for Discord
+            # Export structured release data; the notification lists entry
+            # titles only and links to the full notes on the website.
             tenzir-ship --root "${{ steps.resolve.outputs.dir }}/changelog" \
-              show "$version" --release --markdown --explicit-links > /tmp/notes.md
-            python .github/scripts/discord-notify.py release "${{ steps.resolve.outputs.dir }}" "$version" /tmp/notes.md "$DISCORD_RELEASE_WEBHOOK" || true
+              show "$version" --release --json > /tmp/release.json
+            python .github/scripts/discord-notify.py release "${{ steps.resolve.outputs.dir }}" /tmp/release.json "$DISCORD_RELEASE_WEBHOOK" || true
             sleep 1  # Rate limiting
           done < /tmp/new-releases.txt

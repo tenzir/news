@@ -168,6 +168,11 @@ Configure these optional repository secrets:
 | `DISCORD_CHANGELOG_WEBHOOK` | Notifies about new unreleased entries. |
 | `DISCORD_RELEASE_WEBHOOK` | Notifies about new top-level releases. |
 
+Entry notifications include the full entry body. Release notifications stay
+brief: they show the release title, intro, and entry titles grouped by type,
+and link to the release page on `tenzir.com/changelog`. If a release has too
+many entries for one Discord embed, the last titles are replaced with a count.
+
 When a secret is absent, the workflow skips the corresponding notification.
 Notification failures don't fail the synchronization run.
 

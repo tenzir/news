@@ -16,6 +16,14 @@ BLOCK_START = re.compile(
 )
 BLOCK_END = re.compile(r"^ {0,3}(?:#{1,6}\s|(?:-{3,}|\*{3,}|_{3,})\s*$)")
 
+# Release summary sections in tenzir-ship's export order.
+RELEASE_SECTIONS = (
+    ("breaking", "💥", "Breaking changes"),
+    ("feature", "🚀", "Features"),
+    ("change", "🔄", "Changes"),
+    ("bugfix", "🐞", "Bug fixes"),
+)
+
 
 class EntryData(TypedDict):
     """Normalized changelog entry fields used by notifications."""
@@ -57,6 +65,55 @@ def get_changelog_entry_url(project: str, file_path: Path, config: dict) -> str:
     """Return the canonical website URL for an unreleased changelog entry."""
     project_id = config.get("id", project)
     return f"https://tenzir.com/changelog/{project_id}/unreleased/#{file_path.stem}"
+
+
+def get_changelog_release_url(project: str, version: str, config: dict) -> str:
+    """Return the canonical website URL for a release."""
+    project_id = config.get("id", project)
+    return f"https://tenzir.com/changelog/{project_id}/{version}/"
+
+
+def summarize_release(release: dict, url: str, max_length: int = 4000) -> str:
+    """Render a release as its title, intro, and entry titles grouped by type.
+
+    The input is one release object from `tenzir-ship show --release --json`.
+    Entry bodies are omitted; readers follow the URL for details. When the
+    summary exceeds `max_length`, trailing titles are replaced with a count.
+    """
+    entries = release.get("entries", [])
+    sections = list(RELEASE_SECTIONS)
+    known = {key for key, _, _ in sections}
+    for entry in entries:
+        if entry["type"] not in known:
+            known.add(entry["type"])
+            sections.append((entry["type"], "📝", entry["type"].title()))
+    groups = [
+        (f"### {emoji} {label}", [e["title"] for e in entries if e["type"] == key])
+        for key, emoji, label in sections
+    ]
+    groups = [(heading, titles) for heading, titles in groups if titles]
+    header = [f"**{release['title']}**"] if release.get("title") else []
+    if intro := unfold_soft_breaks((release.get("intro") or "").strip()):
+        header.append(intro)
+    total = sum(len(titles) for _, titles in groups)
+
+    def render(limit: int) -> str:
+        blocks = list(header)
+        remaining = limit
+        for heading, titles in groups:
+            shown = titles[:remaining]
+            remaining -= len(shown)
+            if shown:
+                blocks.append("\n".join([heading, *(f"- {t}" for t in shown)]))
+        if limit < total:
+            blocks.append(f"*…and {total - limit} more in the [release notes]({url}).*")
+        return "\n\n".join(blocks)
+
+    for limit in range(total, -1, -1):
+        text = render(limit)
+        if len(text) <= max_length:
+            return text
+    return text[: max_length - 1] + "…"
 
 
 def load_entry(file_path: Path) -> EntryData:

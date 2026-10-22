@@ -13,10 +13,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 from changelog import (
     campaign_identity_errors,
     get_changelog_entry_url,
+    get_changelog_release_url,
     get_config,
     get_config_for_entry,
     get_repository,
     load_entry,
+    summarize_release,
     unfold_soft_breaks,
 )
 
@@ -97,6 +99,55 @@ class ChangelogHelpersTest(unittest.TestCase):
         self.assertEqual(
             get_changelog_entry_url("mcp", entry, {}),
             "https://tenzir.com/changelog/mcp/unreleased/#add-tool",
+        )
+
+    def test_changelog_release_url_uses_config_id(self) -> None:
+        self.assertEqual(
+            get_changelog_release_url(
+                "helm-charts", "v1.2.0", {"id": "tenzir-helm-charts"}
+            ),
+            "https://tenzir.com/changelog/tenzir-helm-charts/v1.2.0/",
+        )
+        self.assertEqual(
+            get_changelog_release_url("mcp", "v0.3.0", {}),
+            "https://tenzir.com/changelog/mcp/v0.3.0/",
+        )
+
+    def test_summarize_release_lists_titles_by_type(self) -> None:
+        release = {
+            "version": "v1.0.0",
+            "title": "A big release",
+            "intro": "This release\nadds things.",
+            "entries": [
+                {"type": "bugfix", "title": "Fixed a crash", "body": "Long body."},
+                {"type": "feature", "title": "New operator", "body": "Long body."},
+                {"type": "breaking", "title": "Removed X", "body": "Long body."},
+                {"type": "feature", "title": "New function", "body": "Long body."},
+            ],
+        }
+        self.assertEqual(
+            summarize_release(release, "https://example.com/"),
+            "**A big release**\n\n"
+            "This release adds things.\n\n"
+            "### 💥 Breaking changes\n- Removed X\n\n"
+            "### 🚀 Features\n- New operator\n- New function\n\n"
+            "### 🐞 Bug fixes\n- Fixed a crash",
+        )
+
+    def test_summarize_release_truncates_with_a_count(self) -> None:
+        release = {
+            "version": "v1.0.0",
+            "entries": [
+                {"type": "feature", "title": f"Feature number {i}"} for i in range(50)
+            ],
+        }
+        url = "https://example.com/"
+        text = summarize_release(release, url, max_length=300)
+        self.assertLessEqual(len(text), 300)
+        shown = text.count("\n- ")
+        self.assertGreater(shown, 0)
+        self.assertTrue(
+            text.endswith(f"*…and {50 - shown} more in the [release notes]({url}).*")
         )
 
     def test_load_entry_normalizes_fields(self) -> None:
