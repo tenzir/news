@@ -5,14 +5,16 @@ import json
 from pathlib import Path
 
 import click
+import requests
 from changelog import (
+    build_release_message,
     get_changelog_entry_url,
+    get_changelog_product_url,
     get_changelog_release_url,
     get_config,
     get_config_for_entry,
     get_repository,
     load_entry,
-    summarize_release,
     unfold_soft_breaks,
 )
 from discord_webhook import DiscordEmbed, DiscordWebhook
@@ -95,34 +97,54 @@ def entry(project: str, file: Path, webhook_url: str):
 @cli.command()
 @click.argument("project")
 @click.argument("release_file", type=click.Path(exists=True, path_type=Path))
-@click.argument("webhook_url")
-def release(project: str, release_file: Path, webhook_url: str):
+@click.argument("webhook_url", required=False)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Print the message JSON instead of sending it.",
+)
+def release(
+    project: str, release_file: Path, webhook_url: str | None, dry_run: bool
+):
     """Send a notification for a release.
 
     RELEASE_FILE is the output of `tenzir-ship show VERSION --release --json`.
-    The notification lists entry titles only and links to the full notes.
+    The notification is a Components V2 message that lists entry titles by type
+    and links to the full notes in a button. With
+    --dry-run, WEBHOOK_URL is optional and the payload goes to stdout, ready to
+    paste into a Discord message builder.
     """
+    if not dry_run and not webhook_url:
+        raise click.UsageError("WEBHOOK_URL is required unless --dry-run is set.")
     config = get_config(project)
-    repo = get_repository(project, config)
     name = config.get("name", project)
 
     (data,) = json.loads(release_file.read_text())
-    version = data["version"]
-    url = get_changelog_release_url(project, version, config)
-
-    webhook = DiscordWebhook(url=webhook_url)
-    embed = DiscordEmbed(
-        title=f"{name} {version}",
-        description=summarize_release(data, url),
-        color=0x2ECC71,  # Green
+    url = get_changelog_release_url(project, data["version"], config)
+    message = build_release_message(
+        data,
+        name=name,
         url=url,
+        product_url=get_changelog_product_url(project, config),
+        color=0x2ECC71,  # Green
     )
-    embed.set_author(
-        name=repo,
-        url=f"https://github.com/{repo}",
+    if dry_run:
+        click.echo(json.dumps(message, indent=2, ensure_ascii=False))
+        return
+    # Discord ignores components unless `with_components` is set. Webhooks that
+    # aren't owned by an application accept only non-interactive components,
+    # such as link buttons. The message can't carry `content` or `embeds`, so
+    # this bypasses discord-webhook, which always sends an `embeds` key.
+    response = requests.post(
+        webhook_url,
+        params={"with_components": "true", "wait": "true"},
+        json=message,
+        timeout=30,
     )
-    webhook.add_embed(embed)
-    webhook.execute()
+    if not response.ok:
+        raise click.ClickException(
+            f"Discord returned {response.status_code}: {response.text}"
+        )
 
 
 if __name__ == "__main__":

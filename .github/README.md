@@ -168,10 +168,21 @@ Configure these optional repository secrets:
 | `DISCORD_CHANGELOG_WEBHOOK` | Notifies about new unreleased entries. |
 | `DISCORD_RELEASE_WEBHOOK` | Notifies about new top-level releases. |
 
-Entry notifications include the full entry body. Release notifications stay
-brief: they show the release title, intro, and entry titles grouped by type,
-and link to the release page on `tenzir.com/changelog`. If a release has too
-many entries for one Discord embed, the last titles are replaced with a count.
+Entry notifications include the full entry body in an embed. Release
+notifications use [Components V2](https://docs.discord.com/developers/components/reference)
+and stay brief: a container with the release title beside a product pill, the
+intro, one block per entry type listing titles, and a **View VERSION release
+notes** button. The pill links to the product's page on `tenzir.com/changelog`,
+and the button links to the release page there. If a release has too many entries for Discord's text
+limit, the last titles are replaced with a count.
+
+To preview a release message without sending it, print the payload and paste it
+into a Discord message builder such as [discord.builders](https://discord.builders/):
+
+```sh
+tenzir-ship --root PROJECT/changelog show VERSION --release --json > release.json
+python .github/scripts/discord-notify.py release PROJECT release.json --dry-run
+```
 
 When a secret is absent, the workflow skips the corresponding notification.
 Notification failures don't fail the synchronization run.

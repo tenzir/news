@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from changelog import (
+    build_release_message,
     campaign_identity_errors,
     get_changelog_entry_url,
     get_changelog_release_url,
@@ -18,7 +19,6 @@ from changelog import (
     get_config_for_entry,
     get_repository,
     load_entry,
-    summarize_release,
     unfold_soft_breaks,
 )
 
@@ -40,6 +40,17 @@ prs:
 
 The operator now re-batches events internally.
 """
+
+
+def message_texts(message: dict) -> list[dict]:
+    """Collect the text displays of a Components V2 message in order."""
+    texts = []
+    for child in message["components"][0]["components"]:
+        if child["type"] == 10:
+            texts.append(child)
+        elif child["type"] == 9:
+            texts += [c for c in child["components"] if c["type"] == 10]
+    return texts
 
 
 class ChangelogHelpersTest(unittest.TestCase):
@@ -113,7 +124,7 @@ class ChangelogHelpersTest(unittest.TestCase):
             "https://tenzir.com/changelog/mcp/v0.3.0/",
         )
 
-    def test_summarize_release_lists_titles_by_type(self) -> None:
+    def test_release_message_groups_titles_by_type(self) -> None:
         release = {
             "version": "v1.0.0",
             "title": "A big release",
@@ -125,16 +136,57 @@ class ChangelogHelpersTest(unittest.TestCase):
                 {"type": "feature", "title": "New function", "body": "Long body."},
             ],
         }
+        url = "https://example.com/"
+        message = build_release_message(
+            release,
+            name="Tenzir",
+            url=url,
+            product_url="https://example.com/product/",
+            color=0x2ECC71,
+        )
+        self.assertEqual(message["flags"], 1 << 15)
+        self.assertNotIn("content", message)
+        self.assertNotIn("embeds", message)
+        (container,) = message["components"]
+        self.assertEqual(container["type"], 17)
+        self.assertEqual(container["accent_color"], 0x2ECC71)
+        children = container["components"]
+        header = children[0]
+        self.assertEqual(header["type"], 9)
         self.assertEqual(
-            summarize_release(release, "https://example.com/"),
-            "**A big release**\n\n"
-            "This release adds things.\n\n"
-            "### 💥 Breaking changes\n- Removed X\n\n"
-            "### 🚀 Features\n- New operator\n- New function\n\n"
-            "### 🐞 Bug fixes\n- Fixed a crash",
+            header["accessory"],
+            {
+                "type": 2,
+                "style": 5,
+                "label": "Tenzir",
+                "url": "https://example.com/product/",
+            },
+        )
+        self.assertEqual(
+            [c["content"] for c in message_texts(message)],
+            [
+                "# A big release",
+                "This release adds things.",
+                "### 💥 Breaking changes\n- Removed X\n"
+                "### 🚀 Features\n- New operator\n- New function\n"
+                "### 🐞 Bug fixes\n- Fixed a crash",
+            ],
+        )
+        row = children[-1]
+        self.assertEqual(row["type"], 1)
+        self.assertEqual(
+            row["components"],
+            [
+                {
+                    "type": 2,
+                    "style": 5,
+                    "label": "View v1.0.0 release notes",
+                    "url": url,
+                }
+            ],
         )
 
-    def test_summarize_release_truncates_with_a_count(self) -> None:
+    def test_release_message_truncates_with_a_count(self) -> None:
         release = {
             "version": "v1.0.0",
             "entries": [
@@ -142,13 +194,25 @@ class ChangelogHelpersTest(unittest.TestCase):
             ],
         }
         url = "https://example.com/"
-        text = summarize_release(release, url, max_length=300)
-        self.assertLessEqual(len(text), 300)
-        shown = text.count("\n- ")
+        message = build_release_message(
+            release,
+            name="Tenzir",
+            url=url,
+            product_url="https://example.com/product/",
+            color=0,
+            max_length=300,
+        )
+        texts = [c["content"] for c in message_texts(message)]
+        self.assertLessEqual(sum(len(t) for t in texts), 300)
+        shown = texts[-1].count("\n- ")
         self.assertGreater(shown, 0)
         self.assertTrue(
-            text.endswith(f"*…and {50 - shown} more in the [release notes]({url}).*")
+            texts[-1].endswith(
+                f"-# …and {50 - shown} more in the [release notes]({url})."
+            )
         )
+        # The button stays even when titles are dropped.
+        self.assertEqual(message["components"][0]["components"][-1]["type"], 1)
 
     def test_load_entry_normalizes_fields(self) -> None:
         entry = self.write("tenzir/changelog/unreleased/foo.md", ENTRY)

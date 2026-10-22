@@ -16,6 +16,9 @@ BLOCK_START = re.compile(
 )
 BLOCK_END = re.compile(r"^ {0,3}(?:#{1,6}\s|(?:-{3,}|\*{3,}|_{3,})\s*$)")
 
+# Message flag that enables Discord Components V2 (no `content` or `embeds`).
+IS_COMPONENTS_V2 = 1 << 15
+
 # Release summary sections in tenzir-ship's export order.
 RELEASE_SECTIONS = (
     ("breaking", "💥", "Breaking changes"),
@@ -67,18 +70,24 @@ def get_changelog_entry_url(project: str, file_path: Path, config: dict) -> str:
     return f"https://tenzir.com/changelog/{project_id}/unreleased/#{file_path.stem}"
 
 
+def get_changelog_product_url(project: str, config: dict) -> str:
+    """Return the website URL for a project's changelog overview."""
+    project_id = config.get("id", project)
+    return f"https://tenzir.com/changelog/{project_id}/"
+
+
 def get_changelog_release_url(project: str, version: str, config: dict) -> str:
     """Return the canonical website URL for a release."""
     project_id = config.get("id", project)
     return f"https://tenzir.com/changelog/{project_id}/{version}/"
 
 
-def summarize_release(release: dict, url: str, max_length: int = 4000) -> str:
-    """Render a release as its title, intro, and entry titles grouped by type.
+def release_sections(release: dict) -> list[tuple[str, str, list[str]]]:
+    """Group a release's entry titles by type as (emoji, label, titles).
 
     The input is one release object from `tenzir-ship show --release --json`.
-    Entry bodies are omitted; readers follow the URL for details. When the
-    summary exceeds `max_length`, trailing titles are replaced with a count.
+    Sections follow `RELEASE_SECTIONS`; unknown types follow as generic
+    sections, and empty sections are omitted.
     """
     entries = release.get("entries", [])
     sections = list(RELEASE_SECTIONS)
@@ -88,32 +97,77 @@ def summarize_release(release: dict, url: str, max_length: int = 4000) -> str:
             known.add(entry["type"])
             sections.append((entry["type"], "📝", entry["type"].title()))
     groups = [
-        (f"### {emoji} {label}", [e["title"] for e in entries if e["type"] == key])
+        (emoji, label, [e["title"] for e in entries if e["type"] == key])
         for key, emoji, label in sections
     ]
-    groups = [(heading, titles) for heading, titles in groups if titles]
-    header = [f"**{release['title']}**"] if release.get("title") else []
-    if intro := unfold_soft_breaks((release.get("intro") or "").strip()):
-        header.append(intro)
-    total = sum(len(titles) for _, titles in groups)
+    return [group for group in groups if group[2]]
+
+
+def build_release_message(
+    release: dict,
+    *,
+    name: str,
+    url: str,
+    product_url: str,
+    color: int,
+    max_length: int = 4000,
+) -> dict:
+    """Render a release as a Discord Components V2 message payload.
+
+    The message is one container: a header section with the release headline
+    beside a pill that links to the product, the intro, a large gap, a single
+    block that lists entry titles under one heading per entry type, and a link
+    button to the release notes that names the version. Entry bodies are
+    omitted; readers follow the URL for details. Discord limits the text across
+    all text displays; when the message exceeds `max_length`, trailing titles
+    are replaced with a count.
+    """
+
+    def text(content: str) -> dict:
+        return {"type": 10, "content": content}
+
+    version = release["version"]
+    heading = f"# {release.get('title') or f'{name} {version}'}"
+    intro = unfold_soft_breaks((release.get("intro") or "").strip())[:2000]
+    header_length = len(heading) + len(intro)
+    groups = release_sections(release)
+    total = sum(len(titles) for _, _, titles in groups)
 
     def render(limit: int) -> str:
-        blocks = list(header)
+        blocks = []
         remaining = limit
-        for heading, titles in groups:
+        for emoji, label, titles in groups:
             shown = titles[:remaining]
             remaining -= len(shown)
             if shown:
-                blocks.append("\n".join([heading, *(f"- {t}" for t in shown)]))
+                lines = [f"### {emoji} {label}", *(f"- {t}" for t in shown)]
+                blocks.append("\n".join(lines))
         if limit < total:
-            blocks.append(f"*…and {total - limit} more in the [release notes]({url}).*")
-        return "\n\n".join(blocks)
+            blocks.append(
+                f"-# …and {total - limit} more in the [release notes]({url})."
+            )
+        return "\n".join(blocks)
 
     for limit in range(total, -1, -1):
-        text = render(limit)
-        if len(text) <= max_length:
-            return text
-    return text[: max_length - 1] + "…"
+        body = render(limit)
+        if header_length + len(body) <= max_length:
+            break
+    # The product pill is a link button, which Discord allows on any webhook.
+    # A section places it at the trailing edge, level with the title.
+    pill = {"type": 2, "style": 5, "label": name, "url": product_url}
+    children = [
+        {"type": 9, "components": [text(heading)], "accessory": pill},
+    ]
+    if intro:
+        children.append(text(intro))
+    if body:
+        children += [{"type": 14, "divider": False, "spacing": 2}, text(body)]
+    # Link buttons are allowed on any webhook. The label names the version.
+    label = f"View {version} release notes"
+    button = {"type": 2, "style": 5, "label": label, "url": url}
+    children.append({"type": 1, "components": [button]})
+    container = {"type": 17, "accent_color": color, "components": children}
+    return {"flags": IS_COMPONENTS_V2, "components": [container]}
 
 
 def load_entry(file_path: Path) -> EntryData:
