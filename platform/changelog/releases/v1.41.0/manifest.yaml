@@ -1,0 +1,10 @@
+created: 2026-10-22
+title: Machine credentials for organizations
+intro: >-
+  This release adds machine credentials for organizations: federated credentials let
+  workloads such as GitHub Actions runs authenticate with their own OIDC tokens instead
+  of a stored secret, and service tokens cover automation such as the Terraform provider.
+  Revoking either credential immediately invalidates every key issued from it.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.40.3
