@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 import requests
 from changelog import (
+    build_entry_message,
     build_release_message,
     get_changelog_entry_url,
     get_changelog_product_url,
@@ -17,7 +18,6 @@ from changelog import (
     load_entry,
     unfold_soft_breaks,
 )
-from discord_webhook import DiscordEmbed, DiscordWebhook
 
 # Type configuration: emoji, label, and embed color
 TYPE_CONFIG = {
@@ -30,11 +30,24 @@ TYPE_CONFIG = {
 DEFAULT_TYPE = ("📝", "Update", 0x58ACFF)
 
 
-def truncate(text: str, max_length: int = 4000) -> str:
-    """Truncate text to fit Discord's embed limits."""
-    if len(text) <= max_length:
-        return text
-    return text[: max_length - 20] + "\n\n*[Truncated]*"
+def send(webhook_url: str, message: dict) -> None:
+    """Post a Components V2 message to a Discord webhook.
+
+    Discord ignores components unless `with_components` is set. Webhooks that
+    aren't owned by an application accept only non-interactive components, such
+    as link buttons. The message can't carry `content` or `embeds`, so this
+    uses the Discord HTTP API directly.
+    """
+    response = requests.post(
+        webhook_url,
+        params={"with_components": "true", "wait": "true"},
+        json=message,
+        timeout=30,
+    )
+    if not response.ok:
+        raise click.ClickException(
+            f"Discord returned {response.status_code}: {response.text}"
+        )
 
 
 @click.group()
@@ -58,8 +71,8 @@ def entry(project: str, file: Path, webhook_url: str):
     # available in the metadata below.
     url = get_changelog_entry_url(project, file, config)
 
-    # Build description
-    description = truncate(unfold_soft_breaks(data["body"]), 3800)
+    # Build the body. A very long body is truncated by the message builder.
+    description = unfold_soft_breaks(data["body"])
 
     # Add metadata (authors and prs are simple lists after tenzir-ship normalization)
     meta_parts = []
@@ -67,31 +80,23 @@ def entry(project: str, file: Path, webhook_url: str):
         authors_str = ", ".join(
             f"[@{a}](https://github.com/{a})" for a in data["authors"]
         )
-        meta_parts.append(f"By {authors_str}")
+        meta_parts.append(f"by {authors_str}")
     if data["prs"]:
         prs_str = ", ".join(
             f"[#{pr}](https://github.com/{repo}/pull/{pr})" for pr in data["prs"]
         )
-        meta_parts.append(prs_str)
+        meta_parts.append(f"({prs_str})")
 
-    if meta_parts:
-        description += f"\n\n*{' · '.join(meta_parts)}*"
-
-    # Create and send embed
-    webhook = DiscordWebhook(url=webhook_url)
-    embed = DiscordEmbed(
+    message = build_entry_message(
+        kicker=f"**{repo}**",
+        label=f"{emoji} {label}",
         title=data["title"],
-        description=description,
-        color=color,
         url=url,
+        body=description,
+        meta=" ".join(meta_parts),
+        color=color,
     )
-    embed.set_author(
-        name=repo,
-        url=f"https://github.com/{repo}",
-    )
-    embed.set_footer(text=f"{emoji} {label}")
-    webhook.add_embed(embed)
-    webhook.execute()
+    send(webhook_url, message)
 
 
 @cli.command()
@@ -131,20 +136,7 @@ def release(
     if dry_run:
         click.echo(json.dumps(message, indent=2, ensure_ascii=False))
         return
-    # Discord ignores components unless `with_components` is set. Webhooks that
-    # aren't owned by an application accept only non-interactive components,
-    # such as link buttons. The message can't carry `content` or `embeds`, so
-    # this bypasses discord-webhook, which always sends an `embeds` key.
-    response = requests.post(
-        webhook_url,
-        params={"with_components": "true", "wait": "true"},
-        json=message,
-        timeout=30,
-    )
-    if not response.ok:
-        raise click.ClickException(
-            f"Discord returned {response.status_code}: {response.text}"
-        )
+    send(webhook_url, message)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
 click
-discord-webhook
 pyyaml
 requests
 setuptools<81

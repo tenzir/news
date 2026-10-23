@@ -174,6 +174,43 @@ def build_release_message(
     return {"flags": IS_COMPONENTS_V2, "components": [container]}
 
 
+def build_entry_message(
+    *,
+    kicker: str,
+    label: str,
+    title: str,
+    url: str,
+    body: str,
+    meta: str,
+    color: int,
+    max_length: int = 4000,
+) -> dict:
+    """Render a changelog entry as a Discord Components V2 message payload.
+
+    The message is one container: a kicker line with a bold project name
+    followed by the entry type and a byline in regular weight, the title as a heading that links to the entry, and the
+    body. Discord limits the text across all text displays; the body is
+    truncated to fit `max_length`.
+    """
+
+    def text(content: str) -> dict:
+        return {"type": 10, "content": content}
+
+    escaped = title.replace("[", "\\[").replace("]", "\\]")
+    heading = f"## [{escaped}]({url})"
+    kicker = f"{kicker}  {label}" + (f" {meta}" if meta else "")
+    fixed = len(kicker) + len(heading)
+    body = body.strip()
+    budget = max_length - fixed
+    if len(body) > budget:
+        body = body[: max(budget - 20, 0)].rstrip() + "\n\n*[Truncated]*"
+    children = [text(kicker), text(heading)]
+    if body:
+        children.append(text(body))
+    container = {"type": 17, "accent_color": color, "components": children}
+    return {"flags": IS_COMPONENTS_V2, "components": [container]}
+
+
 def load_entry(file_path: Path) -> EntryData:
     """Load and normalize a changelog entry through tenzir-ship."""
     from tenzir_ship.entries import read_entry

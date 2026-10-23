@@ -168,11 +168,14 @@ Configure these optional repository secrets:
 | `DISCORD_CHANGELOG_WEBHOOK` | Notifies about new unreleased entries. |
 | `DISCORD_RELEASE_WEBHOOK` | Notifies about new top-level releases. |
 
-Entry notifications include the full entry body in an embed. Release
-notifications use [Components V2](https://docs.discord.com/developers/components/reference)
-and stay brief: a container with a kicker showing the project and version, the
-release title, the intro, one block per entry type listing titles, and a row of
-two link buttons. **Release notes** links to the release page on
+Both notification types use
+[Components V2](https://docs.discord.com/developers/components/reference).
+Entry notifications show a kicker line with the bold repository name followed
+by the entry type and a byline such as `by @user (#123)` in regular weight,
+the title as a heading that links to the entry, and the full entry body.
+Release notifications stay brief: a container with a kicker showing the project
+and version, the release title, the intro, one block per entry type listing titles,
+and a row of two link buttons. **Release notes** links to the release page on
 `tenzir.com/changelog`, and the project button next to it links to the product's
 page there. If a release has too many entries for Discord's text limit, the last
 titles are replaced with a count.

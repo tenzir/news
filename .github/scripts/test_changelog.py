@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from changelog import (
+    build_entry_message,
     build_release_message,
     campaign_identity_errors,
     get_changelog_entry_url,
@@ -181,6 +182,41 @@ class ChangelogHelpersTest(unittest.TestCase):
                 },
             ],
         )
+
+    def test_entry_message_links_only_the_title(self) -> None:
+        message = build_entry_message(
+            kicker="**tenzir/skills**",
+            label="🚀 Feature",
+            title="Add [x] support",
+            url="https://example.com/entry",
+            body="The body.\n",
+            meta="by @someone (#1)",
+            color=0x58ACFF,
+        )
+        self.assertEqual(message["flags"], 1 << 15)
+        self.assertNotIn("embeds", message)
+        self.assertEqual(
+            [c["content"] for c in message_texts(message)],
+            [
+                "**tenzir/skills**  🚀 Feature by @someone (#1)",
+                "## [Add \\[x\\] support](https://example.com/entry)",
+                "The body.",
+            ],
+        )
+
+    def test_entry_message_truncates_the_body(self) -> None:
+        message = build_entry_message(
+            kicker="**k**",
+            label="b",
+            title="T",
+            url="https://example.com/",
+            body="x" * 5000,
+            meta="",
+            color=0,
+        )
+        texts = [c["content"] for c in message_texts(message)]
+        self.assertLessEqual(sum(len(t) for t in texts), 4000)
+        self.assertTrue(texts[-1].endswith("*[Truncated]*"))
 
     def test_release_message_truncates_with_a_count(self) -> None:
         release = {
