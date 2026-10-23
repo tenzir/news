@@ -114,22 +114,23 @@ def build_release_message(
 ) -> dict:
     """Render a release as a Discord Components V2 message payload.
 
-    The message is one container: a header section with the release headline
-    beside a pill that links to the product, the intro, a large gap, a single
-    block that lists entry titles under one heading per entry type, and a link
-    button to the release notes that names the version. Entry bodies are
-    omitted; readers follow the URL for details. Discord limits the text across
-    all text displays; when the message exceeds `max_length`, trailing titles
-    are replaced with a count.
+    The message is one container: a small kicker with the project and version,
+    the release headline, the intro, a large gap, a single block that lists
+    entry titles under one heading per entry type, and a row with two link
+    buttons: the release notes and the product page.
+    Entry bodies are omitted; readers follow the URL for details. Discord limits
+    the text across all text displays; when the message exceeds `max_length`,
+    trailing titles are replaced with a count.
     """
 
     def text(content: str) -> dict:
         return {"type": 10, "content": content}
 
     version = release["version"]
+    kicker = f"**{name} {version}**"
     heading = f"# {release.get('title') or f'{name} {version}'}"
     intro = unfold_soft_breaks((release.get("intro") or "").strip())[:2000]
-    header_length = len(heading) + len(intro)
+    header_length = len(kicker) + len(heading) + len(intro)
     groups = release_sections(release)
     total = sum(len(titles) for _, _, titles in groups)
 
@@ -152,20 +153,23 @@ def build_release_message(
         body = render(limit)
         if header_length + len(body) <= max_length:
             break
-    # The product pill is a link button, which Discord allows on any webhook.
-    # A section places it at the trailing edge, level with the title.
-    pill = {"type": 2, "style": 5, "label": name, "url": product_url}
-    children = [
-        {"type": 9, "components": [text(heading)], "accessory": pill},
-    ]
+    children = [text(kicker), text(heading)]
     if intro:
         children.append(text(intro))
     if body:
         children += [{"type": 14, "divider": False, "spacing": 2}, text(body)]
-    # Link buttons are allowed on any webhook. The label names the version.
-    label = f"View {version} release notes"
-    button = {"type": 2, "style": 5, "label": label, "url": url}
-    children.append({"type": 1, "components": [button]})
+    # Link buttons are allowed on any webhook. The first links to the release
+    # notes and the second to the product page.
+    buttons = [
+        {
+            "type": 2,
+            "style": 5,
+            "label": "Release notes",
+            "url": url,
+        },
+        {"type": 2, "style": 5, "label": name, "url": product_url},
+    ]
+    children.append({"type": 1, "components": buttons})
     container = {"type": 17, "accent_color": color, "components": children}
     return {"flags": IS_COMPONENTS_V2, "components": [container]}
 

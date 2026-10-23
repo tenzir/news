@@ -151,20 +151,10 @@ class ChangelogHelpersTest(unittest.TestCase):
         self.assertEqual(container["type"], 17)
         self.assertEqual(container["accent_color"], 0x2ECC71)
         children = container["components"]
-        header = children[0]
-        self.assertEqual(header["type"], 9)
-        self.assertEqual(
-            header["accessory"],
-            {
-                "type": 2,
-                "style": 5,
-                "label": "Tenzir",
-                "url": "https://example.com/product/",
-            },
-        )
         self.assertEqual(
             [c["content"] for c in message_texts(message)],
             [
+                "**Tenzir v1.0.0**",
                 "# A big release",
                 "This release adds things.",
                 "### 💥 Breaking changes\n- Removed X\n"
@@ -180,9 +170,15 @@ class ChangelogHelpersTest(unittest.TestCase):
                 {
                     "type": 2,
                     "style": 5,
-                    "label": "View v1.0.0 release notes",
+                    "label": "Release notes",
                     "url": url,
-                }
+                },
+                {
+                    "type": 2,
+                    "style": 5,
+                    "label": "Tenzir",
+                    "url": "https://example.com/product/",
+                },
             ],
         )
 
