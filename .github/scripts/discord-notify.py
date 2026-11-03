@@ -21,13 +21,13 @@ from changelog import (
 
 # Type configuration: emoji, label, and embed color
 TYPE_CONFIG = {
-    "feature": ("🚀", "Feature", 0x58ACFF),  # Blue
-    "change": ("🔄", "Change", 0x9B59B6),  # Purple
-    "breaking": ("💥", "Breaking Change", 0xE74C3C),  # Red
-    "bugfix": ("🐞", "Bug Fix", 0x2ECC71),  # Green
-    "fix": ("🐞", "Bug Fix", 0x2ECC71),
+    "feature": ("🚀", "feature", 0x58ACFF),  # Blue
+    "change": ("🔄", "change", 0x9B59B6),  # Purple
+    "breaking": ("💥", "breaking change", 0xE74C3C),  # Red
+    "bugfix": ("🐞", "bug fix", 0x2ECC71),  # Green
+    "fix": ("🐞", "bug fix", 0x2ECC71),
 }
-DEFAULT_TYPE = ("📝", "Update", 0x58ACFF)
+DEFAULT_TYPE = ("📝", "update", 0x58ACFF)
 
 
 def send(webhook_url: str, message: dict) -> None:
