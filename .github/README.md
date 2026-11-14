@@ -18,8 +18,7 @@ synchronization, notifications, and deployment automation in `tenzir/news`.
 
 Source repositories trigger `workflows/sync.yaml`. The workflow clones the
 source repository and synchronizes its changelog into a top-level project
-directory. The retired `platform` target is skipped so legacy sync requests
-cannot recreate its changelog. Product changes now belong to `tenzir`.
+directory.
 
 ### Synchronization architecture
 

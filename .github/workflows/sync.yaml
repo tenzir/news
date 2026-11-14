@@ -49,8 +49,6 @@ concurrency:
 jobs:
   sync:
     name: Sync Changelog
-    # Ignore legacy callers instead of recreating the retired changelog.
-    if: (inputs.target || inputs.project) != 'platform'
     runs-on: ubuntu-latest
     env:
       DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
