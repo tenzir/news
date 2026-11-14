@@ -1,6 +1,0 @@
-created: 2026-02-24
-title: Explorer chart improvements
-intro: >-
-  This release improves the clarity and usability of Explorer charts with better legends,
-  tooltips, and an expanded color palette. It also fixes several UI bugs including
-  unresponsive pipeline lists and stale workspace cleanup.

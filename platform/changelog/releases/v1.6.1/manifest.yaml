@@ -1,6 +1,0 @@
-created: 2024-12-18
-title: Activity spark bar and CORS fixes
-intro: >-
-  This patch release contains the following changes, bug fixes and improvements
-  over [Tenzir Platform
-  v1.6](https://github.com/tenzir/platform/releases/tag/v1.6.0):

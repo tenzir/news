@@ -1,9 +1,0 @@
-created: 2026-06-01
-title: Stream sorting and Explorer actions
-intro: >-
-  This release adds the ability to sort events by time in the Stream view, cycling
-  between newest-first, oldest-first, and off. It also fixes the Insights tab freezing
-  on large pipelines and upgrades dependencies to address known security vulnerabilities.
-source:
-  mode: sync-stable-queue
-  previous_stable: v1.32.2

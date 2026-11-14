@@ -1,7 +1,0 @@
-id: platform
-name: Tenzir Platform
-description: >-
-  The control plane for managing Tenzir Nodes, providing a web interface for
-  data exploration and pipeline creation, and workspace and secret management.
-repository: tenzir/platform
-omit_pr: true

@@ -1,4 +1,0 @@
-created: 2024-07-02
-title: CLI auth fix
-intro: >-
-  This release fixes a bug in the `tenzir-platform auth` subcommand.

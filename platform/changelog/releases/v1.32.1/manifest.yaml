@@ -1,8 +1,0 @@
-created: 2026-05-13
-title: Security update and shorter user keys
-intro: >-
-  This is a security patch release that updates dependencies to address vulnerabilities.
-  It also shortens the default user key expiry to 15 Minutes.
-source:
-  mode: sync-stable-queue
-  previous_stable: v1.32.0

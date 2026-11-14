@@ -100,7 +100,7 @@ different names:
 - uses: tenzir/news/.github/actions/sync@main
   with:
     token: ${{ steps.app-token.outputs.token }}
-    target: platform
+    target: custom-project
 ```
 
 For an initial import, set `skip_notifications: true`. Remove it after the
@@ -196,7 +196,7 @@ Notification failures don't fail the synchronization run.
 Every push to `main` runs `workflows/changelog-x-relay.yaml`. The workflow
 collects every added manifest matching
 `PROJECT/changelog/releases/VERSION/manifest.yaml`. Automatic posts are
-limited to the `tenzir` (Tenzir Node) and `platform` projects. The relay skips
+limited to the `tenzir` project. The relay skips
 prereleases and refuses pushes containing more than one eligible release.
 This prevents repository onboarding and historical backfills from publishing
 stale release bursts; dispatch the intended URL manually after inspecting such
