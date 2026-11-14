@@ -1,7 +1,0 @@
-created: 2024-07-10
-title: Memory leak and CLI fixes
-intro: >-
-  This bugfix release:
-  * Improves the fix for the memory leak on the overview page
-  * Fixes an argument parsing bug in the `tenzir-platform admin
-    delete-auth-rule` CLI command

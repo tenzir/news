@@ -19,7 +19,6 @@ project synchronized from a source repository:
 ```text
 news/
 ├── tenzir/     # from tenzir/tenzir
-├── platform/   # from tenzir/platform-internal
 └── ...
 ```
 

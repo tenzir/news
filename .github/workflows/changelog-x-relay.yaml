@@ -1,7 +1,7 @@
 name: Relay stable changelog releases to X drafting
 
 # Sends one eligible stable release URL to the workflows Worker. Automatic
-# posts are limited to the tenzir and platform projects, and pushes containing
+# posts are limited to the tenzir project, and pushes containing
 # multiple eligible releases require manual dispatch.
 
 on:
@@ -66,7 +66,7 @@ jobs:
               while IFS= read -r manifest; do
                 project="${manifest%%/*}"
                 case "$project" in
-                  tenzir|platform) ;;
+                  tenzir) ;;
                   *) continue ;;
                 esac
                 version="${manifest%/manifest.yaml}"

@@ -25,7 +25,7 @@ from changelog import (
 
 CONFIG = """\
 id: tenzir
-name: Tenzir Node
+name: Tenzir
 repository: tenzir/tenzir
 """
 
@@ -87,7 +87,7 @@ class ChangelogHelpersTest(unittest.TestCase):
         cwd = os.getcwd()
         os.chdir(self.root)
         self.addCleanup(os.chdir, cwd)
-        self.assertEqual(get_config("tenzir")["name"], "Tenzir Node")
+        self.assertEqual(get_config("tenzir")["name"], "Tenzir")
         self.assertEqual(get_config("missing"), {})
 
     def test_get_repository_falls_back_to_convention(self) -> None:

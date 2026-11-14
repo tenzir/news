@@ -1,8 +1,0 @@
-created: 2026-04-09
-title: Bundled seaweedFS image build fix
-intro: >-
-  This patch release fixes an issue with the container build of the bundled seaweedFS
-  image.
-source:
-  mode: sync-stable-queue
-  previous_stable: v1.30.2

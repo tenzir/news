@@ -1,6 +1,0 @@
-created: 2024-07-01
-title: User key login fix
-intro: >-
-  This patch release fixes a bug where very long-running instances of the
-  tenant-manager issue expired user keys, making it impossible for users to log
-  in successfully.

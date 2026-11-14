@@ -1,5 +1,0 @@
-created: 2026-03-12
-title: Security and Insights fixes
-intro: >-
-  This release upgrades dependencies to address known security vulnerabilities and
-  fixes an issue where the Insights tab selection could get stuck in an invalid state.
