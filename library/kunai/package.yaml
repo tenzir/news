@@ -1,0 +1,22 @@
+id: kunai
+name: Kunai
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+
+description: |
+  [Kunai](https://why.kunai.rocks) is an eBPF-based security monitor for Linux,
+  comparable to Sysmon on Windows. It records process, file, network, and kernel
+  activity and writes one JSON object per event. This package maps those events
+  to OCSF 1.9.0.
+
+  Tenzir reads Kunai's JSON natively, so the package needs no parser:
+  `kunai::ocsf::normalize` takes Kunai events straight to OCSF, and
+  `kunai::ocsf::map` serves pipelines that hold the event under a field.
+
+  The mapping targets the event layout of Kunai after 0.7.0-rc.1. Earlier
+  releases are not supported. The test fixtures follow the event layouts in the
+  Kunai source code and documentation. The file hashes in them are synthetic.
+categories:
+- sources
+- mappings

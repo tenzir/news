@@ -1,0 +1,17 @@
+id: stix
+name: STIX
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+description: |
+  [STIX 2.1](https://docs.oasis-open.org/cti/stix/v2.1/stix-v2.1.html) is the
+  OASIS standard for exchanging threat intelligence, and
+  [TAXII 2.1](https://docs.oasis-open.org/cti/taxii/v2.1/taxii-v2.1.html) is
+  the protocol that serves it. This package fetches STIX objects from TAXII
+  collections and maps STIX Indicators to OCSF 1.9 OSINT Inventory Info.
+
+  Load the indicators into the OSINT lookup table of the `tenzir` package, which
+  your configuration must list as a dependency.
+categories:
+- sources
+- mappings

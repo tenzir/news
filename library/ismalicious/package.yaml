@@ -1,0 +1,15 @@
+id: ismalicious
+name: isMalicious
+version: "0.0.1"
+author: isMalicious
+description: |
+  [isMalicious](https://ismalicious.com) provides indicator reputation with risk,
+  evidence, and provenance for IP addresses, domains, URLs, and file hashes.
+  Use `ismalicious::feed` to load the STIX/TAXII feeds into a lookup table and
+  `ismalicious::check` to look up an indicator with your API credential.
+categories:
+- sources
+- mappings
+
+dependencies:
+  stix: "^0.0.1"

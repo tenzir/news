@@ -1,0 +1,25 @@
+id: dcso
+name: DCSO
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: |
+  https://raw.githubusercontent.com/tenzir/library/main/dcso/package.svg
+
+description: |
+  The [DCSO Threat Intelligence Engine
+  (TIE)](https://docs.dcso.de/docs/tie/get-started/) provides premium threat
+  intelligence feeds from Deutsche Cyber-Sicherheitsorganisation (DCSO), a
+  leading European provider of threat intelligence services. DCSO delivers
+  high-fidelity APT and threat intelligence with deep analysis of threats and
+  campaigns, offering European sovereign intelligence sources for enhanced
+  security operations.
+
+  This package fetches the TIE feed, publishes its indicators of compromise to
+  the `dcso.ioc` topic, and maps them to OCSF 1.9 OSINT Inventory Info.
+
+  For detailed API documentation and IOC schema definitions, refer to the
+  [DCSO TIE API documentation](https://docs.dcso.de/docs/tie/tiev3/ioc_schema_definition).
+
+categories:
+- sources
+

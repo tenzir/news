@@ -1,0 +1,23 @@
+id: microsoft
+name: Microsoft
+version: "0.2.0"
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: |
+  https://raw.githubusercontent.com/tenzir/library/main/microsoft/package.svg
+description: |
+  [Microsoft](https://www.microsoft.com) produces a broad range of enterprise
+  products, from Windows endpoints and Active Directory to Azure cloud services,
+  Microsoft 365, and Defender security tooling, each generating its own
+  telemetry and log formats.
+
+  This package provides operators that parse Microsoft product logs, collect
+  Microsoft Graph telemetry, and map them to OCSF and Microsoft Sentinel ASIM.
+  It canonicalizes Windows Event Log XML and structured events from Fluent Bit,
+  NXLog, and Winlogbeat behind one provider-aware OCSF normalizer. The Windows
+  mappings cover Application, Security, System, PowerShell, Defender, and
+  Sysmon events. The Microsoft Graph integrations cover Entra ID, Defender,
+  Identity Protection, and Intune telemetry.
+categories:
+- mappings
+- sources

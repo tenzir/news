@@ -1,0 +1,18 @@
+id: misp
+name: MISP
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: |
+  https://raw.githubusercontent.com/tenzir/library/main/misp/package.svg
+
+description: |
+  MISP (Malware Information Sharing Platform) is an open-source software
+  solution for gathering, sharing, storing, and correlating Indicators of
+  Compromise from cyberattacks, threat intelligence, and financial fraud.
+
+  This package provides examples to fetch MISP events and normalize them
+  to OCSF Inventory Info events.
+
+categories:
+- sources
+

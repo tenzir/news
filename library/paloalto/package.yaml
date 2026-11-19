@@ -1,0 +1,14 @@
+id: paloalto
+name: Palo Alto Networks
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: https://raw.githubusercontent.com/tenzir/library/main/paloalto/package.svg
+
+description: |
+  Parse Palo Alto Networks PAN-OS syslog CSV payloads and normalize Traffic,
+  URL Filtering, Threat, and GlobalProtect authentication records to OCSF 1.9.
+  Other PAN-OS record families become OCSF Base Events without losing their
+  structured source fields.
+categories:
+- sources
+- mappings

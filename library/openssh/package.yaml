@@ -1,0 +1,39 @@
+id: openssh
+name: OpenSSH
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+
+description: |
+  [OpenSSH](https://www.openssh.com/) provides SSH client and server programs
+  for Unix-like systems. Its `sshd` daemon writes free-form messages to Syslog.
+  This package parses those messages and maps them to OCSF.
+
+  Use `openssh::ocsf::normalize` on a stream of Syslog events to get OCSF
+  Authentication, SSH Activity, Network Activity, or Application Lifecycle
+  events. For staged processing, combine `openssh::parse`,
+  `openssh::aggregate`, and `openssh::ocsf::map`.
+
+  ## OpenSSH log levels
+
+  The package supports OpenSSH's default `INFO` log level. You do not need to
+  change `LogLevel` in `sshd_config`. At `INFO`, the normalizer covers
+  successful and failed authentication, invalid users, exhausted
+  authentication attempts, PAM session events, disconnects, connection
+  failures, MaxStartups refusals, refused forwarding, and protocol errors.
+
+  `VERBOSE` adds optional context, including initial connection records, the
+  authenticated child PID, and session types such as an interactive shell, a
+  remote command, or SFTP.
+
+  Messages without a specific OCSF mapping become OCSF Base Events. The
+  normalizer preserves the full Syslog records in `raw_data`. Source-specific
+  details without an OCSF attribute remain under `unmapped`.
+
+  The package targets OpenSSH on Linux. Other Unix-like systems share many
+  message formats, but are not covered. GSSAPI, host-based, and FIDO-backed
+  authentication are not covered.
+
+categories:
+- sources
+- mappings

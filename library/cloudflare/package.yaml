@@ -1,0 +1,17 @@
+id: cloudflare
+name: Cloudflare
+version: "0.1.0"
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: |
+  https://raw.githubusercontent.com/tenzir/library/main/cloudflare/package.svg
+description: |
+  [Cloudflare](https://www.cloudflare.com/) is a connectivity cloud whose
+  reverse proxy, CDN, and web application firewall sit in front of websites
+  and APIs. This package maps Cloudflare
+  [Logpush](https://developers.cloudflare.com/logs/logpush/) data to OCSF
+  1.9.0 (HTTP requests and firewall events become HTTP Activity, audit logs
+  become API Activity) and fetches account audit logs from the Cloudflare API.
+categories:
+- sources
+- mappings

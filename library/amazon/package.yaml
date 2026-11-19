@@ -1,0 +1,24 @@
+---
+id: amazon
+name: Amazon Web Services
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: https://raw.githubusercontent.com/tenzir/library/main/amazon/package.svg
+description: |
+  Integrations for Amazon Web Services (AWS) logs and Amazon Security Lake.
+
+  - [VPC Flow Logs](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html):
+    parse flow log lines and map them to OCSF 1.9 Network Activity.
+  - [Route 53 Resolver Query Logs](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-query-logs.html):
+    map DNS queries from your VPCs to OCSF 1.9 DNS Activity (4003).
+  - [Security Lake](https://aws.amazon.com/security-lake/): cast OCSF events
+    and write them to Security Lake in its S3-based ingestion format.
+
+  Writing to Security Lake requires a *custom source* per OCSF event class in
+  Security Lake, named `tnz-ocsf-XXXX` where `XXXX` is the class UID, and write
+  permission for the Tenzir deployment on the S3 bucket of each source.
+
+categories:
+  - sources
+  - destinations
+  - mappings

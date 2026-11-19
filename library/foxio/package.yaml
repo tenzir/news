@@ -1,0 +1,16 @@
+id: foxio
+name: FoxIO JA4+
+author: Tenzir
+author_icon: |
+  https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: |
+  https://raw.githubusercontent.com/tenzir/library/main/foxio/package.svg
+
+description: |
+  The [FoxIO JA+ Database](https://ja4db.com/) describes JA+ fingerprints with
+  attributes such as operating system, device, library, and user agent.
+
+  This package provides an operator for normalizing JA+ fingerprint records to
+  OCSF OSINT Inventory Info events.
+categories:
+- mappings

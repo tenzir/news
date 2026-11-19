@@ -1,0 +1,20 @@
+id: checkpoint
+name: Check Point
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: https://raw.githubusercontent.com/tenzir/library/main/checkpoint/package.svg
+
+description: |
+  [Check Point](https://www.checkpoint.com/) provides network security
+  products, including firewall gateways, management services, VPN, email
+  security, DLP, URL filtering, and threat-prevention blades that emit
+  structured records and syslog exports.
+
+  This package extracts Check Point fields from configured Log Exporter syslog
+  formats and JSON exports, normalizes them into canonical
+  `checkpoint.firewall.*` and `checkpoint.management.*` records, and maps the
+  fixture-backed event families to minimal OCSF.
+categories:
+- mappings
+- sources
+

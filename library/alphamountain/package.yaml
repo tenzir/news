@@ -1,0 +1,17 @@
+id: alphamountain
+name: alphaMountain
+author: Tenzir
+author_icon: https://raw.githubusercontent.com/tenzir/library/main/.tenzir.svg
+package_icon: |
+  https://raw.githubusercontent.com/tenzir/library/main/alphamountain/package.svg
+
+description: |
+  [alphaMountain](https://alphamountain.ai) provides up-to-date domain and IP
+  intelligence for cybersecurity investigational and protection platforms.
+
+  This package provides reusable operators for alphaMountain URI lookups,
+  multi-URI lookups, intelligence feeds, license information, and OCSF OSINT
+  Inventory Info mapping.
+categories:
+- sources
+- mappings
