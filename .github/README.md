@@ -142,6 +142,50 @@ directory remains under the target project. For example,
 `plugins/foo/changelog` synchronizes to
 `PROJECT/plugins/foo/changelog` in this repository.
 
+### Synchronize package changelogs
+
+A package library, such as [`tenzir/library`](https://github.com/tenzir/library),
+has no primary changelog. Instead, every top-level package directory has a
+`package.yaml` and a `changelog/` directory, which tenzir-ship reads in package
+mode. When the source has no `path` directory but has such packages, the
+workflow synchronizes them instead. The source workflow only needs to trigger
+on package changes:
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*/changelog/**"
+      - "*/package.yaml"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.TENZIR_GITHUB_APP_ID }}
+          private-key: ${{ secrets.TENZIR_GITHUB_APP_PRIVATE_KEY }}
+          repositories: news
+
+      - uses: tenzir/news/.github/actions/sync@main
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          source_ref: ${{ github.sha }}
+```
+
+Each package synchronizes to `PROJECT/PACKAGE/` with its `package.yaml` and
+`changelog/`. Packages that disappear from the source disappear from the
+target. The workflow rejects `extra_paths` for a package library.
+
+Package changelogs don't appear on `tenzir.com/changelog`, which reads only
+`PROJECT/changelog/`; the website shows package releases on the package pages
+of `tenzir.com/product/library` instead. For the same reason, the sync skips the
+campaign identity validation and the X relay never sees package releases.
+
 ### Trigger synchronization directly
 
 You can also dispatch the workflow without the composite action:
@@ -167,6 +211,14 @@ Configure these optional repository secrets:
 | --- | --- |
 | `DISCORD_CHANGELOG_WEBHOOK` | Notifies about new unreleased entries. |
 | `DISCORD_RELEASE_WEBHOOK` | Notifies about new top-level releases. |
+| `DISCORD_LIBRARY_WEBHOOK` | Notifies about new entries and releases of `library` packages. |
+
+The workflow selects webhooks by target directory, so callers can't choose a
+channel. The `library` target notifies only `DISCORD_LIBRARY_WEBHOOK`, never
+the project webhooks. Package entry titles link to the entry in the source
+repository at the synchronized commit, because the website shows released
+package notes only. Package release buttons link to the package page on
+`tenzir.com/product/library`, which lists the release notes.
 
 Both notification types use
 [Components V2](https://docs.discord.com/developers/components/reference).
@@ -186,6 +238,14 @@ into a Discord message builder such as [discord.builders](https://discord.builde
 ```sh
 tenzir-ship --root PROJECT/changelog show VERSION --release --json > release.json
 python .github/scripts/discord-notify.py release PROJECT release.json --dry-run
+```
+
+For a package, use the package directory as root and the `package-release`
+command. The `entry` and `package-entry` commands accept `--dry-run` as well:
+
+```sh
+tenzir-ship --root PROJECT/PACKAGE/changelog show VERSION --release --json > release.json
+python .github/scripts/discord-notify.py package-release PROJECT/PACKAGE release.json --dry-run
 ```
 
 When a secret is absent, the workflow skips the corresponding notification.

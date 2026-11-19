@@ -18,7 +18,11 @@ from changelog import (
     get_changelog_release_url,
     get_config,
     get_config_for_entry,
+    get_package_config,
+    get_package_release_url,
+    get_package_url,
     get_repository,
+    get_source_file_url,
     load_entry,
     unfold_soft_breaks,
 )
@@ -123,6 +127,33 @@ class ChangelogHelpersTest(unittest.TestCase):
         self.assertEqual(
             get_changelog_release_url("mcp", "v0.3.0", {}),
             "https://tenzir.com/changelog/mcp/v0.3.0/",
+        )
+
+    def test_package_config_reads_the_manifest(self) -> None:
+        self.write(
+            "library/zeek/package.yaml", 'id: zeek\nname: Zeek\nversion: "0.3.0"\n'
+        )
+        config = get_package_config(self.root / "library/zeek")
+        self.assertEqual((config["id"], config["name"]), ("zeek", "Zeek"))
+        self.assertEqual(
+            get_package_url(config), "https://tenzir.com/product/library/zeek"
+        )
+        self.assertEqual(
+            get_package_release_url(config),
+            "https://tenzir.com/product/library/zeek#releases",
+        )
+
+    def test_package_config_falls_back_to_the_directory(self) -> None:
+        (self.root / "library/okta").mkdir(parents=True)
+        config = get_package_config(self.root / "library/okta")
+        self.assertEqual((config["id"], config["name"]), ("okta", "okta"))
+
+    def test_source_file_url_is_a_permalink(self) -> None:
+        self.assertEqual(
+            get_source_file_url(
+                "tenzir/library", "abc123", Path("zeek/changelog/unreleased/x.md")
+            ),
+            "https://github.com/tenzir/library/blob/abc123/zeek/changelog/unreleased/x.md",
         )
 
     def test_release_message_groups_titles_by_type(self) -> None:
