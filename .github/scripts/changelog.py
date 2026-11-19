@@ -16,6 +16,9 @@ BLOCK_START = re.compile(
 )
 BLOCK_END = re.compile(r"^ {0,3}(?:#{1,6}\s|(?:-{3,}|\*{3,}|_{3,})\s*$)")
 
+# The website's catalog of library packages, which shows their release notes.
+LIBRARY_URL = "https://tenzir.com/product/library"
+
 # Message flag that enables Discord Components V2 (no `content` or `embeds`).
 IS_COMPONENTS_V2 = 1 << 15
 
@@ -55,6 +58,36 @@ def get_config(project: str) -> dict:
     if config_path.exists():
         return yaml.safe_load(config_path.read_text()) or {}
     return {}
+
+
+def get_package_config(package: Path) -> dict:
+    """Load the manifest of a package, which configures its changelog.
+
+    A package changelog lives in `PACKAGE/changelog` and takes its metadata
+    from `PACKAGE/package.yaml`, like tenzir-ship's package mode.
+    """
+    manifest = package / "package.yaml"
+    config = yaml.safe_load(manifest.read_text()) if manifest.exists() else None
+    if not isinstance(config, dict):
+        config = {}
+    config.setdefault("id", package.name)
+    config.setdefault("name", config["id"])
+    return config
+
+
+def get_package_url(config: dict) -> str:
+    """Return the website URL of a package, which lists its releases."""
+    return f"{LIBRARY_URL}/{config['id']}"
+
+
+def get_package_release_url(config: dict) -> str:
+    """Return the website URL of a package's release notes."""
+    return f"{get_package_url(config)}#releases"
+
+
+def get_source_file_url(repository: str, ref: str, path: Path) -> str:
+    """Return a GitHub permalink to a file of a source repository."""
+    return f"https://github.com/{repository}/blob/{ref}/{path.as_posix()}"
 
 
 def get_repository(project: str, config: dict | None = None) -> str:

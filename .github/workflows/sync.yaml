@@ -33,6 +33,11 @@ on:
         required: false
         default: ""
         type: string
+      packages:
+        description: "Sync the package changelogs of a package library instead of path"
+        required: false
+        default: false
+        type: boolean
       skip_notifications:
         description: "Skip notifications (for initial imports)"
         required: false
@@ -51,8 +56,16 @@ jobs:
     name: Sync Changelog
     runs-on: ubuntu-latest
     env:
-      DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
-      DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+      # Package libraries notify a dedicated channel about entries and
+      # releases. The explicit fallback to '' keeps package notifications out
+      # of the project channels when the package webhook is missing.
+      ENTRY_WEBHOOK: >-
+        ${{ inputs.packages && secrets.DISCORD_PACKAGE_WEBHOOK
+        || !inputs.packages && secrets.DISCORD_CHANGELOG_WEBHOOK || '' }}
+      RELEASE_WEBHOOK: >-
+        ${{ inputs.packages && secrets.DISCORD_PACKAGE_WEBHOOK
+        || !inputs.packages && secrets.DISCORD_RELEASE_WEBHOOK || '' }}
+      PACKAGES: ${{ inputs.packages }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -72,6 +85,10 @@ jobs:
           source_repo="${{ inputs.source_repo }}"
           echo "dir=${target:-${{ inputs.project }}}" >> "$GITHUB_OUTPUT"
           echo "repo=${source_repo:-${{ inputs.project }}}" >> "$GITHUB_OUTPUT"
+          if [[ "$PACKAGES" == "true" && -n "${{ inputs.extra_paths }}" ]]; then
+            echo "::error::extra_paths does not apply to package libraries"
+            exit 1
+          fi
 
       - name: Validate project and source repository names
         env:
@@ -100,6 +117,7 @@ jobs:
           git -C /tmp/source fetch --depth 1 --quiet origin "${SOURCE_REF:-HEAD}"
           git -C /tmp/source checkout --detach --quiet FETCH_HEAD
           echo "sha=$(git -C /tmp/source rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "full_sha=$(git -C /tmp/source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Snapshot existing files
         id: snapshot
@@ -108,13 +126,17 @@ jobs:
           # Only track unreleased/ - entries in releases/*/entries/ are archived
           # copies that were already notified when they were unreleased
           find "${{ steps.resolve.outputs.dir }}" -path "*/unreleased/*.md" 2>/dev/null | sort > /tmp/entries-before.txt || true
-          # Only track top-level releases, not module releases
-          find "${{ steps.resolve.outputs.dir }}/changelog/releases" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort > /tmp/releases-before.txt || true
+          .github/scripts/list-releases.sh "${{ steps.resolve.outputs.dir }}" "$PACKAGES" > /tmp/releases-before.txt
 
       - name: Sync changelog
+        if: '!inputs.packages'
         run: |
           mkdir -p "${{ steps.resolve.outputs.dir }}/changelog"
           rsync -av --delete "/tmp/source/${{ inputs.path }}/" "${{ steps.resolve.outputs.dir }}/changelog/"
+
+      - name: Sync package changelogs
+        if: inputs.packages
+        run: .github/scripts/sync-packages.sh /tmp/source "${{ steps.resolve.outputs.dir }}"
 
       - name: Sync extra paths
         if: inputs.extra_paths != ''
@@ -149,7 +171,9 @@ jobs:
       - name: Install validation dependencies
         run: python -m pip install pyyaml
 
+      # Packages don't appear on /changelog and have no X campaigns.
       - name: Validate campaign identities
+        if: '!inputs.packages'
         run: >-
           python .github/scripts/changelog.py
           "${{ steps.resolve.outputs.dir }}"
@@ -169,11 +193,15 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Install notification dependencies
-        if: env.DISCORD_CHANGELOG_WEBHOOK != '' || env.DISCORD_RELEASE_WEBHOOK != ''
+        if: env.ENTRY_WEBHOOK != '' || env.RELEASE_WEBHOOK != ''
         run: python -m pip install --requirement .github/scripts/requirements.txt
 
       - name: Notify Discord of new entries
-        if: env.DISCORD_CHANGELOG_WEBHOOK != '' && !inputs.skip_notifications
+        if: env.ENTRY_WEBHOOK != '' && !inputs.skip_notifications
+        env:
+          DIR: ${{ steps.resolve.outputs.dir }}
+          REPOSITORY: tenzir/${{ steps.resolve.outputs.repo }}
+          SOURCE_SHA: ${{ steps.clone.outputs.full_sha }}
         run: |
           # Find new unreleased entries only - released entries were already
           # notified when they were in unreleased/
@@ -184,26 +212,45 @@ jobs:
           while IFS= read -r entry; do
             [[ -z "$entry" ]] && continue
             echo "Notifying Discord about new entry: $entry"
-            python .github/scripts/discord-notify.py entry "${{ steps.resolve.outputs.dir }}" "$entry" "$DISCORD_CHANGELOG_WEBHOOK" || true
+            if [[ "$PACKAGES" == "true" ]]; then
+              package="${entry#"$DIR"/}"
+              package="${package%%/*}"
+              python .github/scripts/discord-notify.py package-entry \
+                "$DIR/$package" "$entry" "$ENTRY_WEBHOOK" \
+                --repository "$REPOSITORY" --ref "$SOURCE_SHA" || true
+            else
+              python .github/scripts/discord-notify.py entry "$DIR" "$entry" "$ENTRY_WEBHOOK" || true
+            fi
             sleep 1  # Rate limiting
           done < /tmp/new-entries.txt
 
       - name: Notify Discord of new releases
-        if: env.DISCORD_RELEASE_WEBHOOK != '' && !inputs.skip_notifications
+        if: env.RELEASE_WEBHOOK != '' && !inputs.skip_notifications
+        env:
+          DIR: ${{ steps.resolve.outputs.dir }}
         run: |
-          # Find new top-level releases (not module releases)
-          find "${{ steps.resolve.outputs.dir }}/changelog/releases" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort > /tmp/releases-after.txt || true
+          .github/scripts/list-releases.sh "$DIR" "$PACKAGES" > /tmp/releases-after.txt
           comm -13 /tmp/releases-before.txt /tmp/releases-after.txt > /tmp/new-releases.txt || true
 
           # Send notification for each new release
           while IFS= read -r release_dir; do
             [[ -z "$release_dir" ]] && continue
             version=$(basename "$release_dir")
-            echo "Notifying Discord about new release: ${{ steps.resolve.outputs.dir }} $version"
+            # The project or package directory that holds changelog/.
+            # tenzir-ship reads a package's metadata from its package.yaml.
+            root="${release_dir%/changelog/releases/*}"
+            echo "Notifying Discord about new release: $root $version"
             # Export structured release data; the notification lists entry
             # titles only and links to the full notes on the website.
-            tenzir-ship --root "${{ steps.resolve.outputs.dir }}/changelog" \
-              show "$version" --release --json > /tmp/release.json
-            python .github/scripts/discord-notify.py release "${{ steps.resolve.outputs.dir }}" /tmp/release.json "$DISCORD_RELEASE_WEBHOOK" || true
+            if ! tenzir-ship --root "$root/changelog" \
+              show "$version" --release --json > /tmp/release.json; then
+              echo "::warning::Failed to export release $root $version"
+              continue
+            fi
+            if [[ "$PACKAGES" == "true" ]]; then
+              python .github/scripts/discord-notify.py package-release "$root" /tmp/release.json "$RELEASE_WEBHOOK" || true
+            else
+              python .github/scripts/discord-notify.py release "$DIR" /tmp/release.json "$RELEASE_WEBHOOK" || true
+            fi
             sleep 1  # Rate limiting
           done < /tmp/new-releases.txt

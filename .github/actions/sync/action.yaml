@@ -28,6 +28,12 @@ inputs:
     description: Additional paths to sync (space-separated)
     required: false
     default: ""
+  packages:
+    description: >-
+      Sync the package changelogs of a package library (<package>/changelog
+      with <package>/package.yaml) instead of path
+    required: false
+    default: "false"
   skip_notifications:
     description: Skip Discord notifications (for initial imports)
     required: false
@@ -61,4 +67,5 @@ runs:
           --field target="${{ inputs.target }}" \
           --field path="${{ inputs.path }}" \
           --field extra_paths="${{ inputs.extra_paths }}" \
+          --field packages="${{ inputs.packages }}" \
           --field skip_notifications="${{ inputs.skip_notifications }}"
