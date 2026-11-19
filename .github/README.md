@@ -147,7 +147,9 @@ directory remains under the target project. For example,
 A package library, such as [`tenzir/library`](https://github.com/tenzir/library),
 has no primary changelog. Instead, every top-level package directory has a
 `package.yaml` and a `changelog/` directory, which tenzir-ship reads in package
-mode. Set `packages: true` to synchronize them:
+mode. When the source has no `path` directory but has such packages, the
+workflow synchronizes them instead. The source workflow only needs to trigger
+on package changes:
 
 ```yaml
 on:
@@ -173,12 +175,11 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
           source_ref: ${{ github.sha }}
-          packages: true
 ```
 
 Each package synchronizes to `PROJECT/PACKAGE/` with its `package.yaml` and
 `changelog/`. Packages that disappear from the source disappear from the
-target. The `path` and `extra_paths` inputs don't apply in this mode.
+target. The workflow rejects `extra_paths` for a package library.
 
 Package changelogs don't appear on `tenzir.com/changelog`, which reads only
 `PROJECT/changelog/`; the website shows package releases on the package pages
@@ -210,12 +211,13 @@ Configure these optional repository secrets:
 | --- | --- |
 | `DISCORD_CHANGELOG_WEBHOOK` | Notifies about new unreleased entries. |
 | `DISCORD_RELEASE_WEBHOOK` | Notifies about new top-level releases. |
-| `DISCORD_PACKAGE_WEBHOOK` | Notifies about new entries and releases of package libraries. |
+| `DISCORD_LIBRARY_WEBHOOK` | Notifies about new entries and releases of `library` packages. |
 
-Package libraries notify only `DISCORD_PACKAGE_WEBHOOK`, never the project
-webhooks. Package entry titles link to the entry in the source repository at the
-synchronized commit, because the website shows released package notes only.
-Package release buttons link to the package page on
+The workflow selects webhooks by target directory, so callers can't choose a
+channel. The `library` target notifies only `DISCORD_LIBRARY_WEBHOOK`, never
+the project webhooks. Package entry titles link to the entry in the source
+repository at the synchronized commit, because the website shows released
+package notes only. Package release buttons link to the package page on
 `tenzir.com/product/library`, which lists the release notes.
 
 Both notification types use

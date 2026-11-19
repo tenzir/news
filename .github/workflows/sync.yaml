@@ -33,11 +33,6 @@ on:
         required: false
         default: ""
         type: string
-      packages:
-        description: "Sync the package changelogs of a package library instead of path"
-        required: false
-        default: false
-        type: boolean
       skip_notifications:
         description: "Skip notifications (for initial imports)"
         required: false
@@ -55,17 +50,6 @@ jobs:
   sync:
     name: Sync Changelog
     runs-on: ubuntu-latest
-    env:
-      # Package libraries notify a dedicated channel about entries and
-      # releases. The explicit fallback to '' keeps package notifications out
-      # of the project channels when the package webhook is missing.
-      ENTRY_WEBHOOK: >-
-        ${{ inputs.packages && secrets.DISCORD_PACKAGE_WEBHOOK
-        || !inputs.packages && secrets.DISCORD_CHANGELOG_WEBHOOK || '' }}
-      RELEASE_WEBHOOK: >-
-        ${{ inputs.packages && secrets.DISCORD_PACKAGE_WEBHOOK
-        || !inputs.packages && secrets.DISCORD_RELEASE_WEBHOOK || '' }}
-      PACKAGES: ${{ inputs.packages }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -85,10 +69,28 @@ jobs:
           source_repo="${{ inputs.source_repo }}"
           echo "dir=${target:-${{ inputs.project }}}" >> "$GITHUB_OUTPUT"
           echo "repo=${source_repo:-${{ inputs.project }}}" >> "$GITHUB_OUTPUT"
-          if [[ "$PACKAGES" == "true" && -n "${{ inputs.extra_paths }}" ]]; then
-            echo "::error::extra_paths does not apply to package libraries"
-            exit 1
-          fi
+
+      # Notification routing is a policy of this repository, so callers can't
+      # choose a channel. Masked secrets stay masked in later steps.
+      - name: Select Discord webhooks
+        env:
+          TARGET: ${{ steps.resolve.outputs.dir }}
+          DISCORD_CHANGELOG_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          DISCORD_LIBRARY_WEBHOOK: ${{ secrets.DISCORD_LIBRARY_WEBHOOK }}
+        run: |
+          case "$TARGET" in
+            library)
+              entry="$DISCORD_LIBRARY_WEBHOOK"
+              release="$DISCORD_LIBRARY_WEBHOOK"
+              ;;
+            *)
+              entry="$DISCORD_CHANGELOG_WEBHOOK"
+              release="$DISCORD_RELEASE_WEBHOOK"
+              ;;
+          esac
+          echo "ENTRY_WEBHOOK=$entry" >> "$GITHUB_ENV"
+          echo "RELEASE_WEBHOOK=$release" >> "$GITHUB_ENV"
 
       - name: Validate project and source repository names
         env:
@@ -119,6 +121,28 @@ jobs:
           echo "sha=$(git -C /tmp/source rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
           echo "full_sha=$(git -C /tmp/source rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      # A source without a changelog at path but with top-level packages, each
+      # with package.yaml and changelog/, is a package library.
+      - name: Detect source layout
+        env:
+          SOURCE_PATH: ${{ inputs.path }}
+          EXTRA_PATHS: ${{ inputs.extra_paths }}
+        run: |
+          if [[ -d "/tmp/source/$SOURCE_PATH" ]]; then
+            packages=false
+          elif compgen -G "/tmp/source/*/package.yaml" > /dev/null; then
+            packages=true
+            if [[ -n "$EXTRA_PATHS" ]]; then
+              echo "::error::extra_paths does not apply to package libraries"
+              exit 1
+            fi
+          else
+            echo "::error::Source has neither $SOURCE_PATH/ nor packages"
+            exit 1
+          fi
+          echo "Package library: $packages"
+          echo "PACKAGES=$packages" >> "$GITHUB_ENV"
+
       - name: Snapshot existing files
         id: snapshot
         run: |
@@ -129,13 +153,13 @@ jobs:
           .github/scripts/list-releases.sh "${{ steps.resolve.outputs.dir }}" "$PACKAGES" > /tmp/releases-before.txt
 
       - name: Sync changelog
-        if: '!inputs.packages'
+        if: env.PACKAGES != 'true'
         run: |
           mkdir -p "${{ steps.resolve.outputs.dir }}/changelog"
           rsync -av --delete "/tmp/source/${{ inputs.path }}/" "${{ steps.resolve.outputs.dir }}/changelog/"
 
       - name: Sync package changelogs
-        if: inputs.packages
+        if: env.PACKAGES == 'true'
         run: .github/scripts/sync-packages.sh /tmp/source "${{ steps.resolve.outputs.dir }}"
 
       - name: Sync extra paths
@@ -173,7 +197,7 @@ jobs:
 
       # Packages don't appear on /changelog and have no X campaigns.
       - name: Validate campaign identities
-        if: '!inputs.packages'
+        if: env.PACKAGES != 'true'
         run: >-
           python .github/scripts/changelog.py
           "${{ steps.resolve.outputs.dir }}"
