@@ -189,9 +189,11 @@ class ChangelogHelpersTest(unittest.TestCase):
                 "**Tenzir v1.0.0**",
                 "# A big release",
                 "This release adds things.",
-                "### 💥 Breaking changes\n- Removed X\n"
-                "### 🚀 Features\n- New operator\n- New function\n"
-                "### 🐞 Bug fixes\n- Fixed a crash",
+                (
+                    "### 💥 Breaking changes\n- Removed X\n"
+                    "### 🚀 Features\n- New operator\n- New function\n"
+                    "### 🐞 Bug fixes\n- Fixed a crash"
+                ),
             ],
         )
         row = children[-1]
