@@ -1,0 +1,10 @@
+created: 2026-07-23
+title: Two-factor authentication and diagnostics heatmap fixes
+intro: >-
+  This release fixes an issue that prevented users from enrolling in two-factor authentication
+  with certain authentication provider configurations, most notably on app.tenzir.com.
+  It also stops the diagnostics heatmap from flashing every ten seconds when the selected
+  time window contains many diagnostics.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.37.2

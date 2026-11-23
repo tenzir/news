@@ -1,0 +1,8 @@
+created: 2026-07-09
+title: Faster Gateway Responses Under Secret Request Load
+intro: >-
+  This release fixes a performance issue in the websocket gateway. Previously, heavy
+  secret request traffic could slow down all gateway responses by several seconds.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.36.0

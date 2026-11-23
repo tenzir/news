@@ -1,0 +1,10 @@
+created: 2026-10-22
+title: Removal of the compromised eMudhra root certificate
+intro: >-
+  This release removes the compromised `emSign ECC Root CA - G3` root certificate
+  from the trust stores of all Tenzir Platform container images. It also fixes a bug
+  where packages installed from the Library lost their shared constants, and includes
+  dependency upgrades from the weekly container scans.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.40.2

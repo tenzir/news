@@ -1,0 +1,10 @@
+created: 2026-07-21
+title: Container security hardening and KeyCloak session fix
+intro: >-
+  This release rebuilds the platform's AWS Lambda and SeaweedFS container images to
+  clear a broad set of known CVEs, and fixes unexpected logouts when KeyCloak is the
+  identity provider on the Sovereign Edition. The Library also refreshes its package
+  view immediately after source changes and surfaces install errors inline.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.37.1

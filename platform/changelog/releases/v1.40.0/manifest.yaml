@@ -1,0 +1,9 @@
+created: 2026-09-23
+title: Azure managed identity for Key Vault secret stores
+intro: >-
+  Azure Key Vault secret stores can now authenticate with a managed identity, which
+  removes the need to keep a long-lived client secret in the workspace configuration.
+  This release also adds a new flag for JSON output to the workspace creation CLI.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.39.2

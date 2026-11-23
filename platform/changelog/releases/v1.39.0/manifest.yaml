@@ -1,0 +1,10 @@
+created: 2026-08-28
+title: Explorer Usability Improvements
+intro: >-
+  This release makes working with data in the Explorer easier: browse stored schemas,
+  use field actions in more places, preview value frequencies, plus new view options
+  in the Stream view and custom time field   selection. It also ships various fixes
+  and security updates under the hood.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.38.0

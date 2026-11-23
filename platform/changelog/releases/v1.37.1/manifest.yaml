@@ -1,0 +1,8 @@
+created: 2026-07-17
+title: Performance, Package Loading, and Login Fixes
+intro: >-
+  The 1.37.0 performance improvements now work more reliably, and this release fixes
+  package loading and login redirects.
+source:
+  mode: sync-stable-queue
+  previous_stable: v1.37.0
